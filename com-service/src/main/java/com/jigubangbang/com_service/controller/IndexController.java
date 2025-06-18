@@ -1,4 +1,4 @@
-package com.jigubangbang.qc_service.controller;
+package com.jigubangbang.com_service.controller;
 
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Controller;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RefreshScope     // Config Server 값 변경 시 자동 갱신
 public class IndexController {
 
-    @GetMapping( "/qc" )
+    @GetMapping( "/com" )
     public String index( Model model ) {
         return "forward:index.html";
     }
