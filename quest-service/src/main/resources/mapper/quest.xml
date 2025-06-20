@@ -3,43 +3,55 @@
     PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.jigubangbang.repository.QuestMapper">
-    <select id="getQuests" resultType="com.jigubangbang.quest_service.model.QuestListDto" parameterType="map">
+<mapper namespace="com.jigubangbang.quest_service.repository.QuestMapper">
+    <select id="getQuests" resultType="com.jigubangbang.quest_service.model.QuestDto" parameterType="map">
         SELECT 
-            id,
-            type,
-            category,
-            title,
-            difficulty,
-            xp,
-            is_seasonal,
-            season_start,
-            season_end,
-            status,
-            created_at
-        FROM quest
+            q.id,
+            q.type,
+            q.category,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            q.status,
+            q.created_at,
+
+            (SELECT 
+                COUNT(*) 
+             FROM quest_user qu 
+             WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
+            ) AS count_in_progress,
+
+            (SELECT 
+                COUNT(*) 
+             FROM quest_user qu 
+             WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
+            ) AS count_completed
+        FROM quest q
         <where>
             <!--카테고리 0: 전체-->
             <if test="category != null and category != 0">
-                category = #{category}
+                q.category = #{category}
             </if>
 
             <!--난이도-->
             <if test="difficulty != null and difficulty != ''">
-                difficulty = #{difficulty}
+                q.difficulty = #{difficulty}
             </if>
         </where>
         <choose>
-            <when test="sortOption == 'latest">
-                ORDER BY created_at DESC
+            <when test="sortOption == 'latest'">
+                ORDER BY q.created_at DESC
             </when>
 
             <when test="sortOption == 'xp'">
-                ORDER BY xp DESC
+                ORDER BY q.xp DESC
             </when>
 
             <otherwise>
-                ORDER BY id ASC
+                ORDER BY q.id ASC
             </otherwise>
         </choose>
         LIMIT #{questPerPage} OFFSET #{offset}
@@ -47,6 +59,41 @@
 
     <select id="countQuests" resultType="int">
         SELECT COUNT(*) FROM quest
+    </select>
+
+    <select id="getQuestParticipants" resultType="com.jigubangbang.quest_service.model.QuestParticipantDto">
+        SELECT
+            u.user_id,
+            u.name,
+            u.nickname,
+            u.profile_image,
+            u.is_premium,
+            u.user_status,
+            u.bio,
+            u.xp,
+            u.level,
+            
+            (SELECT 
+                COUNT(*) 
+             FROM quest_user qu2 
+             WHERE qu2.user_id = u.user_id 
+             AND qu2.status = 'COMPLETED'
+            ) AS quest_completed,
+
+            (SELECT 
+                COUNT(*) 
+             FROM quest_user qu3 
+             WHERE qu3.user_id = u.user_id 
+             AND (qu3.status = 'IN_PROGRESS')
+            ) AS quest_in_progress
+
+        FROM quest_user qu
+        JOIN user u ON qu.user_id = u.user_id
+        WHERE qu.quest_id = #{quest_id}
+    </select>
+
+    <select id="countQuestParticipants" parameterType="int">
+        SELECT COUNT(*) FROM quest_user WHERE status = 'IN_PROGRESS' AND quest_id = #{quest_id}
     </select>
   
 
