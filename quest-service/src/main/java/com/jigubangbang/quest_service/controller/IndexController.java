@@ -11,8 +11,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RefreshScope     // Config Server 값 변경 시 자동 갱신
 public class IndexController {
 
-    @GetMapping( "/quest" )
+    @GetMapping( "/quests" )
     public String index( Model model ) {
         return "forward:index.html";
     }
+
+    @GetMapping( "/user-quests" )
+    public String userIndex( Model model ) {
+        return "forward:index.html";
+    }
+
+    @GetMapping( "/admin-quests" )
+    public String adminIndex( Model model ) {
+        return "forward:index.html";
+    }
+    
 }
