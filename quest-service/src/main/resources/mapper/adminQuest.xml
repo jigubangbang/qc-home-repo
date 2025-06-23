@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.quest_service.repository.AdminQuestMapper">
+    <insert id="createQuest" parameterType="com.jigubangbang.quest_service.model.QuestDto">
+        INSERT INTO quest (type, category, title, difficulty, xp, is_seasonal, season_start, season_end, status, created_at)
+        VALUES (#{type}, #{category}, #{title}, #{difficulty}, #{xp}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
+    </insert>
+
+    <update id="updateQuest" parameterType="map">
+        UPDATE quest
+            SET type = #{type},
+                category = #{category},
+                title = #{title},
+                difficulty = #{difficulty},
+                xp = #{xp},
+                is_seasonal = #{isSeasonal},
+                season_start = #{seasonStart},
+                season_end = #{seasonEnd},
+                status = #{status}
+            WHERE id = #{quest_id}
+    </update>
+
+    <delete id="deleteQuest" parameterType="int">
+        DELETE FROM quest WHERE id=#{quest_id}
+    </delete> 
+
+    
+
+</mapper>
