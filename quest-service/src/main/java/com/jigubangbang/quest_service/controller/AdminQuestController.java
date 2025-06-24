@@ -1,9 +1,11 @@
 package com.jigubangbang.quest_service.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,12 +62,26 @@ public class AdminQuestController {
     
     @PutMapping("/{quest_user_id}/approve")
     public ResponseEntity<Map<String, Object>> approveQuest(@PathVariable int quest_user_id){
-        Map<String, Object> response = new HashMap<>();
-        
-        adminQuestService.approveQuest(quest_user_id);
-        response.put("success", true);
-        response.put("message", "퀘스트 승인 완료");
-        return ResponseEntity.ok(response);
+        try {
+            Map<String, Object> result = adminQuestService.approveQuest(quest_user_id);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "퀘스트 승인 완료");
+            response.put("badgeAwarded", result.get("badgeAwarded"));
+            response.put("awardedBadges", result.get("awardedBadges"));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "퀘스트 승인 중 오류가 발생했습니다: " + e.getMessage());
+            errorResponse.put("badgeAwarded", false);
+            errorResponse.put("awardedBadges", new ArrayList<>());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
     }
     
     @PutMapping("/{quest_user_id}/reject")

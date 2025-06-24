@@ -232,4 +232,37 @@
         WHERE user_id = #{user_id}
     </update>
 
+    <select id="getBadgeIdsByQuestId" parameterType="int" resultType="int">
+        SELECT DISTINCT badge_id 
+        FROM badge_quest 
+        WHERE quest_id = #{quest_id}
+    </select>
+
+    <select id="getRequiredQuestsByBadgeId" parameterType="int" resultType="int">
+        SELECT quest_id 
+        FROM badge_quest 
+        WHERE badge_id = #{badge_id}
+    </select>
+
+    <select id="getCompletedQuestsByUserAndBadge" parameterType="map" resultType="int">
+        SELECT DISTINCT qu.quest_id
+        FROM quest_user qu
+        INNER JOIN badge_quest bq ON qu.quest_id = bq.quest_id
+        WHERE qu.user_id = #{user_id} 
+        AND qu.status = 'COMPLETED'
+        AND bq.badge_id = #{badge_id}
+    </select>
+
+    <select id="checkUserHasBadge" parameterType="map" resultType="boolean">
+        SELECT COUNT(*) $gt; 0
+        FROM badge_user 
+        WHERE user_id = #{user_id} 
+        AND badge_id = #{badge_id}
+    </select>
+
+    <insert id="insertUserBadge" parameterType="map">
+        INSERT INTO badge_user (user_id, badge_id, awarded_at, is_displayed)
+        VALUES (#{user_id}, #{badge_id}, NOW(), false)
+    </insert>
+
 </mapper>

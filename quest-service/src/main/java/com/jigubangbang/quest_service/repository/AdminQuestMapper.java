@@ -24,5 +24,16 @@ public interface AdminQuestMapper {
     public int updateQuestUserReject(int quest_user_id);
 
     public void updateUserXp(Map<String, Object> params);
+
+    //badge 지급
+    public List<Integer> getBadgeIdsByQuestId(int quest_id);
+    
+    public List<Integer> getRequiredQuestsByBadgeId(int badge_id);
+
+    public List<Integer> getCompletedQuestsByUserAndBadge(String user_id, int badge_id);
+
+    public boolean checkUserHasBadge(String user_id, int badge_id);
+
+    public void insertUserBadge(Map<String, Object> params);
 }
 
