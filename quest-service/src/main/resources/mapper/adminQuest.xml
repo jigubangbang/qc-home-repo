@@ -27,7 +27,7 @@
         DELETE FROM quest WHERE id=#{quest_id}
     </delete> 
 
-    <select id="getQuestCertiList" resultType="com.jigubangbang.quest_service.model.QuestCertiDto" parameterType="map">
+    <select id="getQuestCertiList" resultType="com.jigubangbang.quest_service.model.QuestCerti" parameterType="map">
         SELECT 
             qu.id,
             qu.user_id,
@@ -87,7 +87,7 @@
         </choose>
     </select>
 
-    <select id="getQuestCerti" resultType="com.jigubangbang.quest_service.model.QuestCertiDto" parameterType="int">
+    <select id="getQuestCerti" resultType="com.jigubangbang.quest_service.model.QuestCerti" parameterType="int">
         SELECT 
             qu.id, 
             qu.user_id, 
