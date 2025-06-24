@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.quest_service.repository.BadgeMapper">
+    <select id="getAllBadges" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            id, 
+            kor_title, 
+            eng_title, 
+            description, 
+            icon, 
+            created_at, 
+            difficulty
+        FROM badge
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="searchBadges" parameterType="map" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            id, 
+            kor_title, 
+            eng_title, 
+            description, 
+            icon, 
+            created_at, 
+            difficulty
+        FROM badge
+        WHERE (kor_title LIKE #{keyword} OR eng_title LIKE #{keyword} OR description LIKE #{keyword})
+        ORDER BY kor_title ASC
+    </select>
+
+    <select id="getBadgeById" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            id, 
+            kor_title, 
+            eng_title, 
+            description, 
+            icon, 
+            created_at, 
+            difficulty
+        FROM badge
+        WHERE id = #{badge_id}
+    </select>
+
+    <select id="getUserBadgeInfo" parameterType="String" resultType="com.jigubangbang.quest_service.model.UserBadgeDto">
+        SELECT 
+            b.id as badge_id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.difficulty,
+            b.created_at,
+            CASE WHEN bu.user_id IS NOT NULL THEN true ELSE false END as is_awarded,
+            bu.awarded_at,
+            bu.is_displayed,
+            bu.pinned_at,
+            bu.user_id
+        FROM badge b
+        LEFT JOIN badge_user bu ON b.id = bu.badge_id AND bu.user_id = #{user_id}
+        ORDER BY b.difficulty ASC, b.created_at DESC
+    </select>
+
+    <select id="getBadgeQuests" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeQuestDto">
+        SELECT 
+            bq.id,
+            bq.badge_id,
+            bq.quest_id
+        FROM badge_quest bq
+        WHERE bq.badge_id = #{badge_id}
+        ORDER BY bq.id ASC
+    </select>
+
+    <select id="getUserCompletedQuestCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM badge_quest bq
+        JOIN quest_user qu ON bq.quest_id = qu.quest_id
+        WHERE bq.badge_id = #{badge_id} 
+        AND qu.user_id = #{user_id} 
+        AND qu.status = 'COMPLETED'
+    </select>
+
+    <select id="getUserBadge" parameterType="map" resultType="com.jigubangbang.quest_service.model.UserBadgeDto">
+        SELECT 
+            id, 
+            user_id, 
+            badge_id, 
+            awarded_at, 
+            is_displayed, 
+            pinned_at
+        FROM badge_user
+        WHERE user_id = #{user_id} AND badge_id = #{badge_id}
+    </select>
+
+    <update id="updateBadgeDisplay" parameterType="map">
+        UPDATE badge_user 
+        SET is_displayed = #{is_displayed}
+        <if test="pinned_at != null">
+            , pinned_at = #{pinned_at}
+        </if>
+        WHERE user_id = #{user_id}
+        <if test="badge_id != null">
+            AND badge_id = #{badge_id}
+        </if>
+    </update>
+
+    <insert id="insertUserBadge" parameterType="com.jigubangbang.quest_service.model.UserBadgeDto">
+        INSERT INTO badge_user (user_id, badge_id, awarded_at, is_displayed, pinned_at)
+        VALUES (#{user_id}, #{badge_id}, #{awarded_at}, #{is_displayed}, #{pinned_at})
+    </insert>
+
+    <select id="getAdminBadgeList" parameterType="map" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            id, 
+            kor_title, 
+            eng_title, 
+            description, 
+            icon, 
+            created_at, 
+            difficulty
+        FROM badge
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="createBadge" parameterType="com.jigubangbang.quest_service.model.BadgeDto" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO badge (kor_title, eng_title, description, icon, created_at, difficulty)
+        VALUES (#{kor_title}, #{eng_title}, #{description}, #{icon}, #{created_at}, #{difficulty})
+    </insert>
+
+    <update id="updateBadge" parameterType="com.jigubangbang.quest_service.model.BadgeDto">
+        UPDATE badge 
+        SET kor_title = #{kor_title}, 
+            eng_title = #{eng_title}, 
+            description = #{description}, 
+            icon = #{icon},
+            difficulty = #{difficulty}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteBadge" parameterType="int">
+        DELETE FROM badge WHERE id = #{badge_id}
+    </delete>
+
+
+</mapper>
