@@ -33,7 +33,7 @@
         WHERE u.user_id = #{user_id}
     </select>
 
-    <select id="getUserQuestList" parameterType="map" resultType="com.jigubangbang.quest_service.model.UserQuestDto">
+    <select id="getUserQuestList" parameterType="map" resultType="com.jigubangbang.quest_service.model.QuestUserDto">
         SELECT
             qu.id, qu.user_id, qu.quest_id, qu.status,
             qu.started_at, qu.completed_at, qu.given_up_at,

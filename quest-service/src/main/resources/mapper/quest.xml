@@ -97,7 +97,7 @@
         SELECT COUNT(*) FROM quest
     </select>
   
-    <select id="selectQuestById" parameterType="int" resultType="QuestDto">
+    <select id="selectQuestById" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestDto">
         SELECT 
                 q.id,
                 q.type,
