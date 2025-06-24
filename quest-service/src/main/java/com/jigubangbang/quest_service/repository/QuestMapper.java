@@ -15,4 +15,7 @@ public interface QuestMapper {
 
     public List<QuestParticipantDto> getQuestParticipants(int quest_id);
     public int countQuestParticipants(int quest_id);
+
+    public QuestDto selectQuestById(int quest_id);
+    
 }

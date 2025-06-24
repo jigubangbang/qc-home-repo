@@ -11,6 +11,7 @@
             q.category,
             q.title,
             q.difficulty,
+            q.description,
             q.xp,
             q.is_seasonal,
             q.season_start,
@@ -57,10 +58,6 @@
         LIMIT #{questPerPage} OFFSET #{offset}
     </select>
 
-    <select id="countQuests" resultType="int">
-        SELECT COUNT(*) FROM quest
-    </select>
-
     <select id="getQuestParticipants" resultType="com.jigubangbang.quest_service.model.QuestParticipantDto">
         SELECT
             u.user_id,
@@ -95,6 +92,47 @@
     <select id="countQuestParticipants" parameterType="int">
         SELECT COUNT(*) FROM quest_user WHERE status = 'IN_PROGRESS' AND quest_id = #{quest_id}
     </select>
+
+    <select id="countQuests" resultType="int">
+        SELECT COUNT(*) FROM quest
+    </select>
   
+    <select id="selectQuestById" parameterType="int" resultType="QuestDto">
+        SELECT 
+                q.id,
+                q.type,
+                q.category,
+                q.title,
+                q.description,
+                q.difficulty,
+                q.xp,
+                q.is_seasonal,
+                q.season_start,
+                q.season_end,
+                q.status,
+                q.created_at,
+                
+                (SELECT 
+                    COUNT(*) 
+                FROM quest_user qu 
+                WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
+                ) AS count_in_progress,
+
+                (SELECT 
+                    COUNT(*) 
+                FROM quest_user qu 
+                WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
+                ) AS count_completed,
+                
+                (SELECT 
+                    COUNT(*) 
+                FROM quest_user qu 
+                WHERE qu.quest_id = q.id AND qu.status IN ('IN_PROGRESS', 'COMPLETED', 'PENDING')
+                ) AS count_total_participants
+                
+            FROM quest q
+            WHERE q.id = #{quest_id}
+    </select>
+
 
 </mapper>

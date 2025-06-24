@@ -24,10 +24,14 @@ public class QuestService {
         Map<String, Object> params = new HashMap<>();
         params.put("offset", offset);
         params.put("questPerPage", questPerPage);
-        if (sortOption != null) {
+
+        if (category != 0){
+            params.put("category", category);
+        }
+        if (sortOption != null && !sortOption.isEmpty()) {
             params.put("sortOption", sortOption);
         }
-        if (difficulty != null) {
+        if (difficulty != null && !difficulty.isEmpty()) {
             params.put("difficulty", difficulty);
         }
 
@@ -39,7 +43,7 @@ public class QuestService {
         result.put("quests", quests);
         result.put("pageCount", pageCount);
         result.put("totalCount", totalCount);
-        
+        result.put("currentPage", pageNum);
         return result;
     }
 
@@ -52,6 +56,9 @@ public class QuestService {
         result.put("totalCount", totalCount);
         
         return result;
-        
+    }
+
+    public QuestDto getQuestById(int quest_id){
+        return questMapper.selectQuestById(quest_id);
     }
 }

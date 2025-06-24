@@ -14,7 +14,7 @@ public class QuestDto {
     private String title;
     private String difficulty;  // ENUM('EASY', 'MEDIUM', 'HARD')
     private int xp;
-    private Boolean isSeasonal;
+    private Boolean is_seasonal;
     private Timestamp season_start;
     private Timestamp season_end;
     private String status;       // ENUM( 'AUTH', 'CHECK' )
