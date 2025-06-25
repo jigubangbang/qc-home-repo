@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.quest_service.repository.RankingMapper">
+
+    <select id="getWeeklyQuestRanking" resultType="com.jigubangbang.quest_service.model.RankingDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image,
+            u.level,
+            recent_top_user.completed_count AS weekly_quest_count
+        FROM user u
+        INNER JOIN (
+            SELECT 
+                qu.user_id,
+                COUNT(*) AS completed_count
+            FROM quest_user qu
+            WHERE qu.status = 'COMPLETED'
+            AND qu.completed_at &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY qu.user_id
+            ORDER BY completed_count DESC, qu.user_id
+            LIMIT 1
+        ) recent_top_user ON u.user_id = recent_top_user.user_id;
+
+    </select>
+
+    <select id="getWeeklyLevelRanking" resultType="com.jigubangbang.quest_service.model.RankingDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image,
+            u.level,
+            COALESCE(weekly_stats.weekly_xp_gain, 0) AS weekly_xp_gain,
+            
+            CASE
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 29900 THEN 100
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 28900 THEN 99
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 28400 THEN 98
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 27900 THEN 97
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 27400 THEN 96
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 26900 THEN 95
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 26400 THEN 94
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 25900 THEN 93
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 25400 THEN 92
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 24900 THEN 91
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 24400 THEN 90
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 23900 THEN 89
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 23400 THEN 88
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 22900 THEN 87
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 22400 THEN 86
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 21900 THEN 85
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 21400 THEN 84
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 20900 THEN 83
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 20400 THEN 82
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 19900 THEN 81
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 19500 THEN 80
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 19100 THEN 79
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 18700 THEN 78
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 18300 THEN 77
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 17900 THEN 76
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 17500 THEN 75
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 17100 THEN 74
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 16700 THEN 73
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 16300 THEN 72
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 15900 THEN 71
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 15500 THEN 70
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 15100 THEN 69
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 14700 THEN 68
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 14300 THEN 67
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 13900 THEN 66
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 13500 THEN 65
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 13100 THEN 64
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 12700 THEN 63
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 12300 THEN 62
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11900 THEN 61
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11600 THEN 60
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11300 THEN 59
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11000 THEN 58
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 10700 THEN 57
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 10400 THEN 56
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 10100 THEN 55
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 9800 THEN 54
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 9500 THEN 53
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 9200 THEN 52
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8900 THEN 51
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8600 THEN 50
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8300 THEN 49
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8000 THEN 48
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 7700 THEN 47
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 7400 THEN 46
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 7100 THEN 45
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 6800 THEN 44
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 6500 THEN 43
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 6200 THEN 42
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5900 THEN 41
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5700 THEN 40
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5500 THEN 39
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5300 THEN 38
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5100 THEN 37
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4900 THEN 36
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4700 THEN 35
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4500 THEN 34
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4300 THEN 33
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4100 THEN 32
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3900 THEN 31
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3700 THEN 30
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3500 THEN 29
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3300 THEN 28
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3100 THEN 27
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2900 THEN 26
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2700 THEN 25
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2500 THEN 24
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2300 THEN 23
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2100 THEN 22
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1900 THEN 21
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1800 THEN 20
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1700 THEN 19
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1600 THEN 18
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1500 THEN 17
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1400 THEN 16
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1300 THEN 15
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1200 THEN 14
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1100 THEN 13
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1000 THEN 12
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 900 THEN 11
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 800 THEN 10
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 700 THEN 9
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 600 THEN 8
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 500 THEN 7
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 400 THEN 6
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 300 THEN 5
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 200 THEN 4
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 100 THEN 3
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 0 THEN 2
+                ELSE 1
+            END AS weekly_level_before,
+            
+            u.level - (
+                CASE
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 29900 THEN 100
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 28900 THEN 99
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 28400 THEN 98
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 27900 THEN 97
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 27400 THEN 96
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 26900 THEN 95
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 26400 THEN 94
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 25900 THEN 93
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 25400 THEN 92
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 24900 THEN 91
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 24400 THEN 90
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 23900 THEN 89
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 23400 THEN 88
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 22900 THEN 87
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 22400 THEN 86
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 21900 THEN 85
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 21400 THEN 84
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 20900 THEN 83
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 20400 THEN 82
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 19900 THEN 81
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 19500 THEN 80
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 19100 THEN 79
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 18700 THEN 78
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 18300 THEN 77
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 17900 THEN 76
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 17500 THEN 75
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 17100 THEN 74
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 16700 THEN 73
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 16300 THEN 72
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 15900 THEN 71
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 15500 THEN 70
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 15100 THEN 69
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 14700 THEN 68
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 14300 THEN 67
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 13900 THEN 66
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 13500 THEN 65
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 13100 THEN 64
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 12700 THEN 63
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 12300 THEN 62
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11900 THEN 61
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11600 THEN 60
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11300 THEN 59
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 11000 THEN 58
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 10700 THEN 57
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 10400 THEN 56
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 10100 THEN 55
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 9800 THEN 54
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 9500 THEN 53
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 9200 THEN 52
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8900 THEN 51
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8600 THEN 50
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8300 THEN 49
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 8000 THEN 48
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 7700 THEN 47
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 7400 THEN 46
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 7100 THEN 45
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 6800 THEN 44
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 6500 THEN 43
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 6200 THEN 42
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5900 THEN 41
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5700 THEN 40
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5500 THEN 39
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5300 THEN 38
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 5100 THEN 37
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4900 THEN 36
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4700 THEN 35
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4500 THEN 34
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4300 THEN 33
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 4100 THEN 32
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3900 THEN 31
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3700 THEN 30
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3500 THEN 29
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3300 THEN 28
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 3100 THEN 27
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2900 THEN 26
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2700 THEN 25
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2500 THEN 24
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2300 THEN 23
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 2100 THEN 22
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1900 THEN 21
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1800 THEN 20
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1700 THEN 19
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1600 THEN 18
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1500 THEN 17
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1400 THEN 16
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1300 THEN 15
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1200 THEN 14
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1100 THEN 13
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 1000 THEN 12
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 900 THEN 11
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 800 THEN 10
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 700 THEN 9
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 600 THEN 8
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 500 THEN 7
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 400 THEN 6
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 300 THEN 5
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 200 THEN 4
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 100 THEN 3
+                WHEN (u.xp - COALESCE(weekly_stats.weekly_xp_gain, 0)) &gt;= 0 THEN 2
+                ELSE 1
+            END
+            ) AS weekly_level_gain
+
+        FROM user u
+        LEFT JOIN (
+            SELECT 
+                qu.user_id,
+                SUM(q.xp) AS weekly_xp_gain
+            FROM quest_user qu
+            JOIN quest q ON qu.quest_id = q.id
+            WHERE qu.status = 'COMPLETED'
+            AND qu.completed_at &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY qu.user_id
+        ) weekly_stats ON u.user_id = weekly_stats.user_id
+        WHERE weekly_stats.weekly_xp_gain IS NOT NULL
+        ORDER BY weekly_level_gain DESC
+        LIMIT 1;
+
+
+    </select>
+
+
+    <select id="getTopLevelRanking" resultType="com.jigubangbang.quest_service.model.RankingDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image,
+            u.level
+        FROM user u
+        ORDER BY u.level DESC, u.xp DESC
+        LIMIT 1
+    </select>
+
+    <select id="getTopQuestRanking" resultType="com.jigubangbang.quest_service.model.RankingDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image,
+            u.level,
+            COALESCE(quest_stats.total_quest_count, 0) as total_quest_count
+        FROM user u
+        LEFT JOIN (
+            SELECT 
+                qu.user_id,
+                COUNT(*) as total_quest_count
+            FROM quest_user qu
+            WHERE qu.status = 'COMPLETED'
+            GROUP BY qu.user_id
+        ) quest_stats ON u.user_id = quest_stats.user_id
+        WHERE quest_stats.total_quest_count &gt; 0
+        ORDER BY quest_stats.total_quest_count DESC, u.level DESC
+        LIMIT 1
+    </select>
+
+</mapper>

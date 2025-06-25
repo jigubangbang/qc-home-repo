@@ -1,0 +1,57 @@
+package com.jigubangbang.quest_service.controller;
+
+import com.jigubangbang.quest_service.model.RankingDto;
+import com.jigubangbang.quest_service.service.RankingService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/quests")
+public class RankingController {
+
+    @Autowired
+    private RankingService rankingService;
+
+    @GetMapping("/weekly-quest")
+    public ResponseEntity<RankingDto> getWeeklyQuestRanking() {
+        RankingDto ranking = rankingService.getWeeklyQuestRanking();
+        if (ranking != null) {
+            return ResponseEntity.ok(ranking);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    @GetMapping("/weekly-level")
+    public ResponseEntity<RankingDto> getWeeklyLevelRanking() {
+        RankingDto ranking = rankingService.getWeeklyLevelRanking();
+        if (ranking != null) {
+            return ResponseEntity.ok(ranking);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    @GetMapping("/top-level")
+    public ResponseEntity<RankingDto> getTopLevelRanking() {
+        RankingDto ranking = rankingService.getTopLevelRanking();
+        if (ranking != null) {
+            return ResponseEntity.ok(ranking);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
+    @GetMapping("/top-quest")
+    public ResponseEntity<RankingDto> getTopQuestRanking() {
+        RankingDto ranking = rankingService.getTopQuestRanking();
+        if (ranking != null) {
+            return ResponseEntity.ok(ranking);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+}
