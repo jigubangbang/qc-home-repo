@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qc-home-repo-deployment # Deployment 리소스의 이름을 레포지토리 이름으로 지정
+  labels:
+    app: qc-home-repo # 이 Deployment를 식별하기 위한 라벨
+spec:
+  replicas: 1 # 실행할 Pod의 복제본 수. 번들 컨테이너이므로 1개가 일반적.
+  selector:
+    matchLabels:
+      app: qc-home-repo # 이 Deployment가 관리할 Pod를 선택하는 라벨 셀렉터
+  template: # 생성될 Pod의 명세 (템플릿)
+    metadata:
+      labels:
+        app: qc-home-repo # 생성될 Pod에 적용될 라벨 (위 selector와 일치해야 함)
+    spec:
+      # 초기화 컨테이너: Config Server와 Eureka Server가 준비될 때까지 대기합니다.
+      # 이 번들 내의 모든 서비스가 이 두 인프라 서비스에 의존하므로 Init Container로 설정합니다.
+      initContainers:
+        - name: wait-for-config-server
+          image: curlimages/curl:latest # 경량 curl 이미지 사용
+          command:
+            - 'sh'
+            - '-c'
+            - 'until curl -s http://config-server:8888/actuator/health; do echo waiting for config-server; sleep 5; done;'
+        - name: wait-for-eureka
+          image: curlimages/curl:latest # 경량 curl 이미지 사용
+          command:
+            - 'sh'
+            - '-c'
+            - 'until curl -s http://eureka-server:8761/actuator/health; do echo waiting for eureka-server; sleep 10; done;'
+      containers:
+      - name: qc-home-repo-container # Pod 내에서 실행될 컨테이너의 이름을 레포지토리 이름으로 변경
+        image: __ECR_IMAGE_FULL_PATH__ # 사용할 Docker 이미지 (Full ECR 경로로 변경 필요)
+        ports:
+        # 번들 컨테이너 내에서 실행되는 모든 서비스의 포트를 명시합니다.
+        - containerPort: 8087 # Com Service 포트 (임의로 지정, 실제 포트 확인 필수)
+        - containerPort: 8088 # Home Service 포트 (임의로 지정, 실제 포트 확인 필수)
+        - containerPort: 8089 # Quest Service 포트 (임의로 지정, 실제 포트 확인 필수)
+        env:
+          # Spring Cloud Config Server URL (Kubernetes Service 이름 사용)
+          - name: SPRING_CLOUD_CONFIG_URI
+            value: "http://config-server:8888"
+          # Eureka Server URL (Kubernetes Service 이름 사용)
+          - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+            value: "http://eureka-server:8761/eureka/"
+          - name: SPRING_PROFILES_ACTIVE
+            value: "production" # Dockerfile에서 설정한 "production" 프로파일 사용
+          # Actuator 엔드포인트 노출 설정 (번들 내 모든 서비스에 공통 적용)
+          - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE
+            value: "health,liveness,readiness"
+        resources:
+          limits:
+            # 세 서비스가 함께 실행되므로 CPU/메모리 상한 조정 (user-admin-repo와 동일하게 설정)
+            cpu: "1500m" # 각 서비스 CPU limits (500m)의 합을 기준으로 설정
+            memory: "4608Mi" # 각 서비스 Memory limits (1536Mi)의 합을 기준으로 설정
+          requests:
+            # 요청량도 각 서비스의 요청량 합산 (user-admin-repo와 동일하게 설정)
+            cpu: "900m"   # 각 서비스 CPU requests (300m)의 합을 기준으로 설정
+            memory: "2304Mi" # 각 서비스 Memory requests (768Mi)의 합을 기준으로 설정
+        # livenessProbe와 readinessProbe는 번들 내의 특정 서비스 포트를 가리킬 수밖에 없습니다.
+        # 여기서는 Com Service (8087)를 대표로 사용합니다.
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness # Spring Boot 2.x 이상 엔드포인트 사용 권장
+            port: 8087 # Com Service의 포트 (임의 지정, 실제 포트 확인 필수)
+          initialDelaySeconds: 90 # 컨테이너 시작 후 프로브 시작까지 대기 시간 (세 서비스 모두 시작될 시간 고려)
+          periodSeconds: 20       # 프로브 주기
+          timeoutSeconds: 10      # 프로브 응답 대기 시간
+          failureThreshold: 3     # 실패 횟수
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness # Spring Boot 2.x 이상 엔드포인트 사용 권장
+            port: 8087 # Com Service의 포트 (임의 지정, 실제 포트 확인 필수)
+          initialDelaySeconds: 60 # 컨테이너 시작 후 프로브 시작까지 대기 시간
+          periodSeconds: 15
+          timeoutSeconds: 10
+          failureThreshold: 3
