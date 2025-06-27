@@ -4,8 +4,8 @@ WORKDIR /app
 COPY . /app
 
 # 2. --- community-service 빌드 ---
-WORKDIR /app/community-service
-RUN chmod +x ./mvnw || { echo "ERROR: community-service mvnw 스크립트를 찾을 수 없거나 권한이 없습니다. /app/community-service 경로를 확인하세요."; exit 1; }
+WORKDIR /app/com-service
+RUN chmod +x ./mvnw || { echo "ERROR: com-service mvnw 스크립트를 찾을 수 없거나 권한이 없습니다. /app/com-service 경로를 확인하세요."; exit 1; } # <-- 오류 메시지도 'com-service'로 수정했습니다.
 RUN ./mvnw dependency:go-offline -B
 RUN ./mvnw package -DskipTests
 ARG COMMUNITY_JAR_FILE_NAME=target/*.jar
