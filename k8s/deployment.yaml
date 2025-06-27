@@ -45,11 +45,11 @@ spec:
             value: "health,liveness,readiness"
         resources:
           limits:
-            cpu: "1000m"
-            memory: "3072Mi"
+            cpu: "800m"
+            memory: "2560Mi"
           requests:
-            cpu: "500m"
-            memory: "1536Mi"
+            cpu: "400m"
+            memory: "1280Mi"
         livenessProbe:
           httpGet:
             path: /actuator/health/liveness
