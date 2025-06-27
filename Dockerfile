@@ -3,13 +3,14 @@ FROM openjdk:17-jdk-slim AS builder
 WORKDIR /app
 COPY . /app
 
-# 2. --- community-service 빌드 ---
+
+# 2. --- com-service 빌드 ---
 WORKDIR /app/com-service
 RUN chmod +x ./mvnw || { echo "ERROR: com-service mvnw 스크립트를 찾을 수 없거나 권한이 없습니다. /app/com-service 경로를 확인하세요."; exit 1; } # <-- 오류 메시지도 'com-service'로 수정했습니다.
 RUN ./mvnw dependency:go-offline -B
 RUN ./mvnw package -DskipTests
-ARG COMMUNITY_JAR_FILE_NAME=target/*.jar
-RUN cp ${COMMUNITY_JAR_FILE_NAME} /app/community-service-bundle.jar || { echo "Community Service JAR 파일이 target 디렉토리에서 발견되지 않았습니다. 빌드 로그를 확인하세요."; exit 1;}
+ARG COM_JAR_FILE_NAME=target/*.jar
+RUN cp ${COM_JAR_FILE_NAME} /app/com-service-bundle.jar || { echo "Com Service JAR 파일이 target 디렉토리에서 발견되지 않았습니다. 빌드 로그를 확인하세요."; exit 1;}
 
 
 # 3. --- home-service 빌드 ---
@@ -40,7 +41,7 @@ VOLUME /tmp
 EXPOSE 8087
 EXPOSE 8088
 EXPOSE 8089
-COPY --from=builder /app/community-service-bundle.jar /app/community-service.jar
+COPY --from=builder /app/com-service-bundle.jar /app/com-service.jar
 COPY --from=builder /app/home-service-bundle.jar /app/home-service.jar
 COPY --from=builder /app/quest-service-bundle.jar /app/quest-service.jar
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
