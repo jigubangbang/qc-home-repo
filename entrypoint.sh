@@ -1,3 +1,4 @@
+#!/bin/sh
 echo "Starting Community Service (port 8087)..."
 java -jar /app/community-service.jar &
 COMMUNITY_PID=$!
