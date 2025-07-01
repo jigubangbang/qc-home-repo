@@ -19,6 +19,8 @@ public class QuestDto {
     private Timestamp season_end;
     private String status;       // ENUM( 'AUTH', 'CHECK' )
     private Timestamp created_at;
+    
+    private String icon;
 
     //join
     private int count_in_progress;

@@ -11,7 +11,7 @@ import com.jigubangbang.quest_service.model.QuestParticipantDto;
 @Mapper
 public interface QuestMapper {
     public List<QuestDto> getQuests(Map<String, Object> params);
-    public int countQuests();
+    public int countQuests(Map<String, Object> params);
 
     public List<QuestParticipantDto> getQuestParticipants(int quest_id);
     public int countQuestParticipants(int quest_id);

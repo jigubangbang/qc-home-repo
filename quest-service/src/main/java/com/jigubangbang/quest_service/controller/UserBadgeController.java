@@ -56,8 +56,17 @@ public class UserBadgeController {
     //내 뱃지 목록
     @GetMapping("/badges")
     public ResponseEntity<Map<String, Object>> getMayBadges(HttpServletRequest request){
+        //#NeedToChange
         String user_id = "aaa";
         Map<String, Object> result = badgeService.getUserBadgeInfo(user_id);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/badges/my")
+    public ResponseEntity<Map<String, Object>> getAwardedBadges(HttpServletRequest request){
+        //#NeedToChange
+        String user_id = "aaa";
+        Map<String, Object> result = badgeService.getUserBadges(user_id);
         return ResponseEntity.ok(result);
     }
 }

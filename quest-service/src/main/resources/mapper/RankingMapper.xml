@@ -294,4 +294,65 @@
         LIMIT 1
     </select>
 
+    <select id="getTotalMember" resultType="int">
+        SELECT COUNT(*) 
+        FROM user
+    </select>
+
+    <select id="getRankingById" parameterType="String" resultType="int">
+        SELECT ranking
+        FROM (
+            SELECT 
+                user_id,
+                RANK() OVER (ORDER BY level DESC, xp DESC) as ranking
+            FROM user
+        ) ranked_users
+        WHERE user_id = #{user_id}
+    </select>
+
+    <select id="getRankingList" parameterType="map" resultType="com.jigubangbang.quest_service.model.UserRankingDto">
+        SELECT
+            u.user_id,
+            u.nickname,
+            u.profile_image,
+            u.xp,
+            u.level,
+
+            (SELECT COUNT(*)
+            FROM quest_user qu
+            WHERE qu.user_id = u.user_id
+            AND qu.status='COMPLETED'
+            )AS completed_quest,
+
+            (SELECT COUNT(*)
+            FROM quest_user qu
+            WHERE qu.user_id = u.user_id
+            AND qu.status = 'IN_PROGRESS'
+            )AS in_progress_quest
+
+            FROM user u
+            <where>
+                <if test="search != null and search != ''">
+                    (u.user_id LIKE CONCAT('%', #{search}, '%')
+                    OR u.nickname LIKE CONCAT('%', #{search}, '%'))
+                </if>
+            </where>
+            ORDER BY
+                u.level DESC,
+                u.xp DESC,
+                completed_quest DESC,
+                u.user_id ASC
+            LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="getTotalRankingCount" resultType="int" parameterType="String">
+        SELECT COUNT(*)
+        FROM user u
+        <where>
+            <if test="search != null and search != ''">
+                (u.user_id LIKE CONCAT('%', #{search}, '%')
+                OR u.nickname LIKE CONCAT('%', #{search}, '%'))
+            </if>
+        </where>
+    </select>
 </mapper>

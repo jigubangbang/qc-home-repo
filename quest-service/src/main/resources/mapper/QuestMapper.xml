@@ -18,44 +18,66 @@
             q.season_end,
             q.status,
             q.created_at,
+            
+            (SELECT b.icon 
+            FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id 
+            ORDER BY bq.badge_id DESC 
+            LIMIT 1) AS icon,
 
-            (SELECT 
-                COUNT(*) 
-             FROM quest_user qu 
-             WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
+            (SELECT COUNT(*) 
+            FROM quest_user qu 
+            WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
             ) AS count_in_progress,
 
-            (SELECT 
-                COUNT(*) 
-             FROM quest_user qu 
-             WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
+            (SELECT COUNT(*) 
+            FROM quest_user qu 
+            WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
             ) AS count_completed
+            
         FROM quest q
         <where>
-            <!--카테고리 0: 전체-->
+            1=1
             <if test="category != null and category != 0">
-                q.category = #{category}
+                AND q.category = #{category}
             </if>
-
-            <!--난이도-->
             <if test="difficulty != null and difficulty != ''">
-                q.difficulty = #{difficulty}
+                AND q.difficulty = #{difficulty}
+            </if>
+            <if test="search != null and search != ''">
+                AND (q.title LIKE CONCAT('%', #{search}, '%') 
+                OR q.description LIKE CONCAT('%', #{search}, '%') 
+                OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
             </if>
         </where>
+
         <choose>
             <when test="sortOption == 'latest'">
                 ORDER BY q.created_at DESC
             </when>
-
-            <when test="sortOption == 'xp'">
+            
+            <when test="sortOption == 'oldest'">
+                ORDER BY q.created_at ASC
+            </when>
+            
+            <when test="sortOption == 'xp_high'">
                 ORDER BY q.xp DESC
+            </when>
+            
+            <when test="sortOption == 'xp_low'">
+                ORDER BY q.xp ASC
+            </when>
+
+            <when test="sortOption == 'default'">
+                ORDER BY q.id ASC
             </when>
 
             <otherwise>
                 ORDER BY q.id ASC
             </otherwise>
         </choose>
-        LIMIT #{questPerPage} OFFSET #{offset}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="getQuestParticipants" resultType="com.jigubangbang.quest_service.model.QuestParticipantDto">
@@ -93,8 +115,23 @@
         SELECT COUNT(*) FROM quest_user WHERE status = 'IN_PROGRESS' AND quest_id = #{quest_id}
     </select>
 
-    <select id="countQuests" resultType="int">
-        SELECT COUNT(*) FROM quest
+    <select id="countQuests" resultType="int" parameterType="map">
+        SELECT COUNT(*)
+            FROM quest q
+            <where>
+                1=1
+                <if test="category != null and category != 0">
+                    AND q.category = #{category}
+                </if>
+                <if test="difficulty != null and difficulty != ''">
+                    AND q.difficulty = #{difficulty}
+                </if>
+                <if test="search != null and search != ''">
+                    AND (q.title LIKE CONCAT('%', #{search}, '%') 
+                    OR q.description LIKE CONCAT('%', #{search}, '%') 
+                    OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
+                </if>
+            </where>
     </select>
   
     <select id="selectQuestById" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestDto">

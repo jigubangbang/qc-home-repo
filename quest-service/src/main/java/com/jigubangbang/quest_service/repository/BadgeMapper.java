@@ -11,24 +11,25 @@ import com.jigubangbang.quest_service.model.UserBadgeDto;
 
 @Mapper
 public interface BadgeMapper {
-    List<BadgeDto> getAllBadges();
-    List<BadgeDto> searchBadges(Map<String, Object> params);
-    BadgeDto getBadgeById(int badge_id);
+    public List<BadgeDto> getAllBadges(Map<String, Object> params);
+    int getBadgeCount(Map<String, Object> params);
+
+    public List<String> getQuestTitlesByBadgeId(int id);
+    public BadgeDto getBadgeById(int badge_id);
     
-    List<UserBadgeDto> getUserBadgeInfo(String user_id);
+    public List<UserBadgeDto> getUserBadgeInfo(String user_id);
     //UserBadgeDto getUserBadgeInfoById(Map<String, Object> params);
     
-    List<UserBadgeDto> getUserBadges(String user_id);
-    UserBadgeDto getUserBadge(Map<String, Object> params);
-    int updateBadgeDisplay(Map<String, Object> params);
-    int insertUserBadge(UserBadgeDto userBadge);
+    public List<UserBadgeDto> getUserBadges(String user_id);
+    public UserBadgeDto getUserBadge(Map<String, Object> params);
+    public int updateBadgeDisplay(Map<String, Object> params);
+    public int insertUserBadge(UserBadgeDto userBadge);
 
-    List<BadgeQuestDto> getBadgeQuests(int badge_id);
-    int getUserCompletedQuestCount(Map<String, Object> params);
+    public List<BadgeQuestDto> getBadgeQuests(int badge_id);
+    public int getUserCompletedQuestCount(Map<String, Object> params);
 
-    List<BadgeDto> getAdminBadgeList(Map<String, Object> params);
-    int createBadge(BadgeDto badge);
+    public List<BadgeDto> getAdminBadgeList(Map<String, Object> params);
+    public int createBadge(BadgeDto badge);
     //int updateBadge(BadgeDto badge);
-    int deleteBadge(int badge_id);
-
+    public int deleteBadge(int badge_id);
 }

@@ -16,15 +16,8 @@ public class QuestService {
     @Autowired
     private QuestMapper questMapper;
 
-    public Map<String, Object> getQuests(int pageNum, int category, String sortOption, String difficulty){
-        //#NeedToChange
-        int questPerPage = 100;
-        int offset = (pageNum-1)*questPerPage;
-
+    public Map<String, Object> getQuests(int pageNum, int category, String sortOption, String difficulty, String search, int limit){
         Map<String, Object> params = new HashMap<>();
-        params.put("offset", offset);
-        params.put("questPerPage", questPerPage);
-
         if (category != 0){
             params.put("category", category);
         }
@@ -34,10 +27,17 @@ public class QuestService {
         if (difficulty != null && !difficulty.isEmpty()) {
             params.put("difficulty", difficulty);
         }
+        if (search != null && !search.isEmpty()) {
+            params.put("search", search);  // 추가
+        }
+        
+        int offset = (pageNum-1)*limit;
+        params.put("limit", limit);
+        params.put("offset", offset);
 
         List<QuestDto> quests = questMapper.getQuests(params);
-        int totalCount = questMapper.countQuests();
-        int pageCount = (int) Math.ceil((double) totalCount/questPerPage);
+        int totalCount = questMapper.countQuests(params);
+        int pageCount = (int) Math.ceil((double) totalCount/limit);
 
         Map<String, Object> result = new HashMap<>();
         result.put("quests", quests);

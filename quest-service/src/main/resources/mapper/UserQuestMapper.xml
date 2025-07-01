@@ -16,47 +16,83 @@
     
     <select id="getUserJourney" parameterType="String" resultType="com.jigubangbang.quest_service.model.UserJourneyDto">
         SELECT 
-            u.user_id as user_id,
-            u.nickname as nickname,
-            u.profile_image as profile_image,
+            u.user_id,
+            u.nickname,
+            u.profile_image,
+            u.xp,
             u.level,
-            COALESCE(quest_stats.completed_count, 0) as completed_quest_count
+            COALESCE(SUM(CASE WHEN qu.status = 'COMPLETED' THEN 1 ELSE 0 END), 0) as completed_quest_count,
+            COALESCE(SUM(CASE WHEN qu.status = 'IN_PROGRESS' THEN 1 ELSE 0 END), 0) as in_progress_quest_count
         FROM user u
-        LEFT JOIN (
-            SELECT 
-                user_id,
-                COUNT(*) as completed_count
-            FROM quest_user 
-            WHERE status = 'COMPLETED'
-            GROUP BY user_id
-        ) quest_stats ON u.user_id = quest_stats.user_id
+        LEFT JOIN quest_user qu ON u.user_id = qu.user_id 
+            AND qu.status IN ('COMPLETED', 'IN_PROGRESS')
         WHERE u.user_id = #{user_id}
+        GROUP BY u.user_id, u.nickname, u.profile_image, u.level
     </select>
 
     <select id="getUserQuestList" parameterType="map" resultType="com.jigubangbang.quest_service.model.QuestUserDto">
         SELECT
-            qu.id, qu.user_id, qu.quest_id, qu.status,
-            qu.started_at, qu.completed_at, qu.given_up_at,
-            q.title, q.difficulty, q.xp
+            qu.id AS id,
+            qu.user_id AS user_id,
+            qu.quest_id AS quest_id,
+            qu.status AS status,
+            qu.started_at AS started_at,
+            qu.completed_at AS completed_at,
+            qu.given_up_at AS given_up_at,
+            q.title AS title,
+            q.difficulty AS difficulty,
+            q.xp AS xp,
+            (SELECT b.icon 
+            FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id 
+            LIMIT 1) AS icon,
+            (SELECT b.kor_title 
+            FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id 
+            LIMIT 1) AS badge,
+            (SELECT COALESCE(
+                ROUND(
+                    (SELECT COUNT(*)
+                    FROM quest_user qu2
+                    JOIN badge_quest bq2 ON qu2.quest_id = bq2.quest_id
+                    WHERE qu2.user_id = #{user_id}
+                    AND bq2.badge_id = (SELECT bq.badge_id 
+                                        FROM badge_quest bq 
+                                        WHERE bq.quest_id = q.id 
+                                        LIMIT 1)
+                    AND qu2.status = 'COMPLETED'
+                    ) * 100.0 /
+                    (SELECT COUNT(*)
+                    FROM badge_quest bq3
+                    WHERE bq3.badge_id = (SELECT bq.badge_id 
+                                        FROM badge_quest bq 
+                                        WHERE bq.quest_id = q.id 
+                                        LIMIT 1)
+                    )
+                ), 0
+            )) AS progress
         FROM quest_user qu
         JOIN quest q ON qu.quest_id = q.id
         WHERE qu.user_id = #{user_id}
-        <if test="filter != null">
-            AND status = #{filter}
+        
+        <if test="status != null">
+            AND qu.status = #{status}
         </if>
         
         <choose>
             <when test="order == 'xp'">
-                ORDER BY xp DESC
+                ORDER BY q.xp DESC
             </when>
             <when test="order == 'started_at'">
-                ORDER BY started_at DESC
+                ORDER BY qu.started_at DESC
             </when>
             <when test="order == 'completed_at'">
-                ORDER BY completed_at DESC
+                ORDER BY qu.completed_at DESC
             </when>
             <otherwise>
-                ORDER BY id DESC
+                ORDER BY qu.started_at DESC
             </otherwise>
         </choose>
     </select>

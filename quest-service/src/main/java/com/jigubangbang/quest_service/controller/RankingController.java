@@ -2,10 +2,14 @@ package com.jigubangbang.quest_service.controller;
 
 import com.jigubangbang.quest_service.model.RankingDto;
 import com.jigubangbang.quest_service.service.RankingService;
+
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -53,5 +57,15 @@ public class RankingController {
         } else {
             return ResponseEntity.noContent().build();
         }
+    }
+
+    @GetMapping("/rankings")
+    public ResponseEntity<Map<String, Object>> getRankingList(
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "10") int limit,
+        @RequestParam(required=false) String search
+    ){
+        Map<String, Object> result = rankingService.getRankingList(page, limit, search);
+        return ResponseEntity.ok(result);
     }
 }

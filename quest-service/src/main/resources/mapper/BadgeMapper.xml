@@ -4,31 +4,48 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.jigubangbang.quest_service.repository.BadgeMapper">
-    <select id="getAllBadges" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+    <select id="getAllBadges" resultType="com.jigubangbang.quest_service.model.BadgeDto" parameterType="map">
         SELECT 
-            id, 
-            kor_title, 
-            eng_title, 
-            description, 
-            icon, 
-            created_at, 
-            difficulty
-        FROM badge
-        ORDER BY created_at DESC
+            b.id, 
+            b.kor_title, 
+            b.eng_title, 
+            b.description, 
+            b.icon, 
+            b.created_at, 
+            b.difficulty,
+            (SELECT COUNT(*) FROM badge_user bu WHERE bu.badge_id = b.id) AS acquired_count
+        FROM badge b
+        <where>
+            1=1
+            <if test="search != null and search != ''">
+                AND (b.kor_title LIKE CONCAT('%', #{search}, '%') 
+                OR b.eng_title LIKE CONCAT('%', #{search}, '%')
+                OR b.description LIKE CONCAT('%', #{search}, '%')) 
+            </if>
+        </where>
+        ORDER BY b.id ASC
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
-    <select id="searchBadges" parameterType="map" resultType="com.jigubangbang.quest_service.model.BadgeDto">
-        SELECT 
-            id, 
-            kor_title, 
-            eng_title, 
-            description, 
-            icon, 
-            created_at, 
-            difficulty
-        FROM badge
-        WHERE (kor_title LIKE #{keyword} OR eng_title LIKE #{keyword} OR description LIKE #{keyword})
-        ORDER BY kor_title ASC
+    <select id="getBadgeCount" resultType="int" parameterType="map">
+        SELECT COUNT(*)
+        FROM badge b
+        <where>
+            1=1
+            <if test="search != null and search != ''">
+                AND (b.kor_title LIKE CONCAT('%', #{search}, '%')
+                OR b.eng_title LIKE CONCAT('%', #{search}, '%')
+                OR b.description LIKE CONCAT('%', #{search}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="getQuestTitlesByBadgeId" parameterType="int" resultType="String">
+        SELECT q.title
+        FROM badge_quest bq
+        JOIN quest q ON bq.quest_id = q.id
+        WHERE bq.badge_id = #{value}
+        ORDER BY bq.id DESC
     </select>
 
     <select id="getBadgeById" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeDto">
@@ -61,6 +78,26 @@
         FROM badge b
         LEFT JOIN badge_user bu ON b.id = bu.badge_id AND bu.user_id = #{user_id}
         ORDER BY b.difficulty ASC, b.created_at DESC
+    </select>
+
+    <select id="getUserBadges" parameterType="String" resultType="com.jigubangbang.quest_service.model.UserBadgeDto">
+        SELECT 
+            b.id as badge_id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.difficulty,
+            b.created_at,
+            true as is_awarded,
+            bu.awarded_at,
+            bu.is_displayed,
+            bu.pinned_at,
+            bu.user_id
+        FROM badge b
+        INNER JOIN badge_user bu ON b.id = bu.badge_id 
+            AND bu.user_id = #{user_id}
+        ORDER BY bu.awarded_at DESC
     </select>
 
     <select id="getBadgeQuests" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeQuestDto">

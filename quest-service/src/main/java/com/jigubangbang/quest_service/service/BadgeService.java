@@ -1,6 +1,7 @@
 package com.jigubangbang.quest_service.service;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,31 +19,32 @@ public class BadgeService {
     @Autowired
     private BadgeMapper badgeMapper;
 
-    public Map<String, Object> getAllBadges(){
-        List<BadgeDto> badges = badgeMapper.getAllBadges();
-        int totalCount = badges.size();
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("badges", badges);
-        result.put("totalCount", totalCount);
-
-        return result;
-    }
-
-    public Map<String, Object> searchBadges(String keyword){
+    public Map<String, Object> getAllBadges(int pageNum, String search, int limit){
         Map<String, Object> params = new HashMap<>();
-        params.put("keyword", "%"+keyword+"%");
 
-        List<BadgeDto> badges = badgeMapper.searchBadges(params);
-        int totalCount = badges.size();
+        if (search != null && !search.isEmpty()) {
+            params.put("search", search);  // 추가
+        }
+        
+        int offset = (pageNum-1)*limit;
+        params.put("limit", limit);
+        params.put("offset", offset);
+
+        List<BadgeDto> badges = badgeMapper.getAllBadges(params);
+        int totalCount = badgeMapper.getBadgeCount(params);
+
+        for(BadgeDto badge : badges) {
+        List<String> questTitles = badgeMapper.getQuestTitlesByBadgeId(badge.getId());
+        badge.setQuest(questTitles != null ? questTitles : new ArrayList<>());
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("badges", badges);
         result.put("totalCount", totalCount);
-        result.put("keyword", keyword);
 
         return result;
     }
+
 
     public BadgeDto getBadgeById(int badge_id){
         return badgeMapper.getBadgeById(badge_id);
@@ -70,14 +72,14 @@ public class BadgeService {
         return result;
     }
 
-    // public Map<String, Object> getUserBadges(String user_id){
-    //     List<UserBadgeDto> userBadges = badgeMapper.getUserBadges(user_id);
+    public Map<String, Object> getUserBadges(String user_id){
+        List<UserBadgeDto> userBadges = badgeMapper.getUserBadges(user_id);
 
-    //     Map<String, Object> result = new HashMap<>();
-    //     result.put("badges", userBadges);
-    //     result.put("totalCount", userBadges.size());
-    //     return result;
-    // }
+        Map<String, Object> result = new HashMap<>();
+        result.put("badges", userBadges);
+        result.put("totalCount", userBadges.size());
+        return result;
+    }
 
     public boolean pinBadge(String user_id, int badge_id){
         Map<String, Object> unpinParams = new HashMap<>();

@@ -14,6 +14,7 @@ import com.jigubangbang.quest_service.model.UserJourneyDto;
 public interface UserQuestMapper {
     public int countUserQuest(Map<String, Object> params);
     public void insertQuestUser(QuestUserDto questUser);
+    
     public UserJourneyDto getUserJourney(String user_id);
     public List<QuestUserDto> getUserQuestList(Map<String, Object> params);
     public QuestCerti getQuestCerti(int quest_user_id);

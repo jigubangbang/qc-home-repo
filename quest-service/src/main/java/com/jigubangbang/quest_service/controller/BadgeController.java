@@ -18,16 +18,13 @@ public class BadgeController {
     private BadgeService badgeService;
 
     @GetMapping("/badges")
-    public ResponseEntity<Map<String, Object>> getAllBadges(){
-        Map<String, Object> result = badgeService.getAllBadges();
+    public ResponseEntity<Map<String, Object>> getAllBadges(
+        @RequestParam(defaultValue="1") int pageNum,
+        @RequestParam(required=false) String search,
+        @RequestParam(defaultValue = "100") int limit
+    ){
+        Map<String, Object> result = badgeService.getAllBadges(pageNum, search, limit);
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping("/badges/search")
-    public ResponseEntity<Map<String, Object>> searchBadges(
-        @RequestParam String keyword
-    ){
-        Map<String, Object> result = badgeService.searchBadges(keyword);
-        return ResponseEntity.ok(result);
-    }
 }

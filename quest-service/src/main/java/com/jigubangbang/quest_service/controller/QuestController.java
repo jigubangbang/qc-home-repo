@@ -29,12 +29,15 @@ public class QuestController {
         @RequestParam(defaultValue="1") int pageNum,
         @RequestParam(defaultValue="0") int category,
         @RequestParam(required=false) String sortOption,
-        @RequestParam(required=false) String difficulty
+        @RequestParam(required=false) String difficulty,
+        @RequestParam(required=false) String search,
+        @RequestParam(defaultValue = "10") int limit
     ){
-        Map<String, Object> result = questService.getQuests(pageNum, category, sortOption, difficulty);
+        Map<String, Object> result = questService.getQuests(pageNum, category, sortOption, difficulty, search, limit);
         return ResponseEntity.ok(result);
     }
 
+    //#NeedToChange
     @GetMapping("/{quest_id}")
     public ResponseEntity<QuestDto> getQuestDetail(@PathVariable("quest_id") int quest_id) {
         QuestDto quest = questService.getQuestById(quest_id);
@@ -44,6 +47,7 @@ public class QuestController {
         return ResponseEntity.ok(quest);
     }
 
+    //#NeedToChange
     @GetMapping("/{quest_id}/participants")
     public ResponseEntity<Map<String, Object>> getQuestParticipants(
         @PathVariable("quest_id") int quest_id
