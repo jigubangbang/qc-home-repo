@@ -27,4 +27,5 @@ public class BadgeController {
         return ResponseEntity.ok(result);
     }
 
+
 }

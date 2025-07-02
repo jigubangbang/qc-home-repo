@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestParticipantDto;
+import com.jigubangbang.quest_service.model.QuestPublicModalDto;
+import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
 import com.jigubangbang.quest_service.repository.QuestMapper;
 
 @Service
@@ -60,5 +62,21 @@ public class QuestService {
 
     public QuestDto getQuestById(int quest_id){
         return questMapper.selectQuestById(quest_id);
+    }
+
+    public QuestPublicModalDto getQuestPublicModalById(int quest_id){
+        QuestPublicModalDto questModal = questMapper.getQuestModalById(quest_id);
+
+        if (questModal == null){
+            return null;
+        }
+
+        List<QuestSimpleParticipantDto> inProgressUsers = questMapper.getInProgressUsers(quest_id);
+        questModal.setIn_progress_user(inProgressUsers);
+        
+        List<QuestSimpleParticipantDto> completedUsers = questMapper.getCompletedUsers(quest_id);
+        questModal.setCompleted_user(completedUsers);
+
+        return questModal;
     }
 }

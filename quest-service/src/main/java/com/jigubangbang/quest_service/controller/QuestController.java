@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.quest_service.model.QuestDto;
+import com.jigubangbang.quest_service.model.QuestPublicModalDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
 import com.jigubangbang.quest_service.service.QuestService;
 import com.jigubangbang.quest_service.service.UserQuestService;
@@ -46,6 +47,17 @@ public class QuestController {
         }
         return ResponseEntity.ok(quest);
     }
+
+    //quest 조회
+    @GetMapping("/detail/{quest_id}")
+    public ResponseEntity<QuestPublicModalDto> getQuestPublicDetail(@PathVariable("quest_id") int quest_id) {
+
+        QuestPublicModalDto quest = questService.getQuestPublicModalById(quest_id);
+        if (quest == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(quest);
+        }
 
     //#NeedToChange
     @GetMapping("/{quest_id}/participants")

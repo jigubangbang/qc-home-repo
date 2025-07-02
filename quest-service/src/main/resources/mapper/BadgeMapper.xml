@@ -40,6 +40,7 @@
         </where>
     </select>
 
+
     <select id="getQuestTitlesByBadgeId" parameterType="int" resultType="String">
         SELECT q.title
         FROM badge_quest bq
@@ -179,6 +180,66 @@
     <delete id="deleteBadge" parameterType="int">
         DELETE FROM badge WHERE id = #{badge_id}
     </delete>
+
+    
+    <!-- 뱃지 모달 -->
+    <select id="getBadgeModalBase" parameterType="map" resultType="com.jigubangbang.quest_service.model.BadgeModalDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.difficulty,
+            b.created_at,
+            u.user_id,
+            u.nickname,
+            CASE WHEN bu.id IS NOT NULL THEN true ELSE false END as is_awarded,
+            bu.id as badge_user_id,
+            bu.awarded_at,
+            COALESCE(bu.is_displayed, false) as is_displayed
+        FROM badge b
+        CROSS JOIN user u
+        LEFT JOIN badge_user bu ON b.id = bu.badge_id AND u.user_id = bu.user_id
+        WHERE b.id = #{badge_id}
+        AND u.user_id = #{user_id}
+    </select>
+
+    <select id="getQuestListByBadgeId" resultType="com.jigubangbang.quest_service.model.BadgeModalDto" parameterType="int">
+        SELECT 
+            q.id,
+            q.title
+        FROM badge_quest bq
+        JOIN quest q ON bq.quest_id = q.id
+        WHERE bq.badge_id = #{badge_id}
+        ORDER BY q.id
+    </select>
+
+    <select id="getCompletedQuestCount" resultType="int" parameterType="map">
+        SELECT COUNT(*) 
+        FROM quest_user qu
+        JOIN badge_quest bq ON bq.quest_id = qu.quest_id
+        WHERE bq.badge_id = #{badge_id}
+        AND qu.user_id = #{user_id}
+        AND qu.status = 'COMPLETED'
+    </select>
+
+    <select id="getAwardedUserCount" resultType="int" parameterType="int">
+        SELECT COUNT(*)
+        FROM badge_user bu
+        WHERE bu.badge_id = #{badge_id}
+    </select>
+
+    <select id="getAwardedUserList" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image
+        FROM badge_user bu
+        JOIN user u ON bu.user_id = u.user_id
+        WHERE bu.badge_id = #{badge_id}
+        ORDER BY bu.awarded_at DESC
+    </select>
 
 
 </mapper>

@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestImageDto;
+import com.jigubangbang.quest_service.model.QuestModalDto;
+import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
 import com.jigubangbang.quest_service.model.QuestUserDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
 import com.jigubangbang.quest_service.repository.UserQuestMapper;
@@ -19,6 +21,25 @@ import com.jigubangbang.quest_service.repository.UserQuestMapper;
 public class UserQuestService {
     @Autowired
     private UserQuestMapper userQuestMapper;
+
+    public QuestModalDto getQuestModalById(String current_user_id, int quest_id){
+        Map<String, Object> params = new HashMap<>();
+        params.put("current_user_id", current_user_id);
+        params.put("quest_id", quest_id);
+        QuestModalDto questModal = userQuestMapper.getQuestModalById(params);
+
+        if (questModal == null){
+            return null;
+        }
+
+        List<QuestSimpleParticipantDto> inProgressUsers = userQuestMapper.getInProgressUsers(quest_id);
+        questModal.setIn_progress_user(inProgressUsers);
+        
+        List<QuestSimpleParticipantDto> completedUsers = userQuestMapper.getCompletedUsers(quest_id);
+        questModal.setCompleted_user(completedUsers);
+
+        return questModal;
+    }
 
     public int countUserQuest(String user_id, int quest_id){
         Map<String, Object> params = new HashMap<>();

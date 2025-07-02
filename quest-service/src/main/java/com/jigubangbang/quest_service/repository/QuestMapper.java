@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestParticipantDto;
+import com.jigubangbang.quest_service.model.QuestPublicModalDto;
+import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
 
 @Mapper
 public interface QuestMapper {
@@ -18,4 +20,9 @@ public interface QuestMapper {
 
     public QuestDto selectQuestById(int quest_id);
     
+    //public modal
+    public QuestPublicModalDto getQuestModalById(int quest_id);
+    List<QuestSimpleParticipantDto> getInProgressUsers(int quest_id);
+    List<QuestSimpleParticipantDto> getCompletedUsers(int quest_id);
+
 }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.quest_service.model.QuestCerti;
+import com.jigubangbang.quest_service.model.QuestModalDto;
 import com.jigubangbang.quest_service.model.QuestUserDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
 import com.jigubangbang.quest_service.service.UserQuestService;
@@ -26,6 +27,20 @@ import jakarta.servlet.http.HttpServletRequest;
 public class UserQuestController {
     @Autowired
     private UserQuestService userQuestService;
+
+    //quest 조회
+    @GetMapping("/detail/{quest_id}")
+    public ResponseEntity<QuestModalDto> getQuestDetail(@PathVariable("quest_id") int quest_id) {
+         //#NeedToChange
+        //session에서 user id 받아오기
+        String current_user_id = "aaa";
+
+        QuestModalDto quest = userQuestService.getQuestModalById(current_user_id, quest_id);
+        if (quest == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(quest);
+        }
 
     //퀘스트 도전
     @PostMapping("/challenge")
@@ -94,7 +109,7 @@ public class UserQuestController {
     }
 
     //퀘스트 인증 조회
-    @GetMapping("/{quest_user_id}")
+    @GetMapping("/certi/{quest_user_id}")
     public ResponseEntity<QuestCerti> getQuestCerti(
         @PathVariable("quest_user_id") int quest_user_id
     ){

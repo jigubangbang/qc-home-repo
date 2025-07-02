@@ -11,7 +11,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.jigubangbang.quest_service.model.BadgeDto;
+//import com.jigubangbang.quest_service.model.BadgeDto;
+import com.jigubangbang.quest_service.model.BadgeModalDto;
 import com.jigubangbang.quest_service.service.BadgeService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,16 +23,32 @@ public class UserBadgeController {
     @Autowired
     private BadgeService badgeService;
 
+    //#NeedToChange 이거 쓸까?
+    // @GetMapping("/badges/{badge_id}")
+    // public ResponseEntity<BadgeDto> getBadgeDetail(
+    //     @PathVariable("badge_id") int badge_id
+    // ){
+    //     BadgeDto badge = badgeService.getBadgeById(badge_id);
+    //     if (badge == null){
+    //         return ResponseEntity.notFound().build();
+    //     }
+    //     return ResponseEntity.ok(badge);
+    // }
+
     @GetMapping("/badges/{badge_id}")
-    public ResponseEntity<BadgeDto> getBadgeDetail(
+    public ResponseEntity<BadgeModalDto> getBadgeModal(
         @PathVariable("badge_id") int badge_id
     ){
-        BadgeDto badge = badgeService.getBadgeById(badge_id);
-        if (badge == null){
+        //#NeedToChange
+        String user_id = "aaa";
+
+        BadgeModalDto badge = badgeService.getBadgeModal(badge_id, user_id);
+        if (badge == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(badge);
     }
+
 
     @PostMapping("/badges/{badge_id}/pin")
     public ResponseEntity<Map<String, Object>> pinBadge(

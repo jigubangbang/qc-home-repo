@@ -4,6 +4,77 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.jigubangbang.quest_service.repository.UserQuestMapper">
+
+    <select id="getQuestModalById" parameterType="map" resultType="com.jigubangbang.quest_service.model.QuestModalDto">
+        SELECT 
+            q.id,
+            q.type,
+            q.category,
+            q.title,
+            q.description,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            q.status,
+            
+            u.user_id,
+            u.nickname,
+            
+            qu.status as quest_status,
+            qu.id as quest_user_id,
+            qu.started_at,
+            qu.completed_at,
+            qu.given_up_at,
+            
+            (SELECT b.id FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id LIMIT 1) as badge_id,
+            (SELECT b.icon FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id LIMIT 1) as badge_icon,
+            (SELECT b.kor_title FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id LIMIT 1) as kor_title,
+            (SELECT b.eng_title FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id LIMIT 1) as eng_title,
+            
+            -- 진행/완료 카운트
+            (SELECT COUNT(*) FROM quest_user qu_prog WHERE qu_prog.quest_id = q.id AND qu_prog.status = 'IN_PROGRESS') as count_in_progress,
+            (SELECT COUNT(*) FROM quest_user qu_comp WHERE qu_comp.quest_id = q.id AND qu_comp.status = 'COMPLETED') as count_completed
+            
+        FROM quest q
+        LEFT JOIN user u ON u.user_id = #{current_user_id} 
+        LEFT JOIN quest_user qu ON q.id = qu.quest_id AND qu.user_id = #{current_user_id} 
+        WHERE q.id = #{quest_id}
+    </select>
+
+    <select id="getInProgressUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image
+        FROM quest_user qu
+        JOIN user u ON qu.user_id = u.user_id
+        WHERE qu.quest_id = #{quest_id} 
+        AND qu.status = 'IN_PROGRESS'
+        ORDER BY qu.started_at DESC
+    </select>
+
+    <select id="getCompletedUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image
+        FROM quest_user qu
+        JOIN user u ON qu.user_id = u.user_id
+        WHERE qu.quest_id = #{quest_id} 
+        AND qu.status = 'COMPLETED'
+        ORDER BY qu.completed_at DESC
+    </select>
+    
     <insert id="insertQuestUser" parameterType="com.jigubangbang.quest_service.model.QuestUserDto">
         INSERT INTO quest_user (user_id, quest_id, status, started_at)
         VALUES (#{user_id}, #{quest_id}, #{status}, #{started_at})
