@@ -205,7 +205,20 @@
         AND u.user_id = #{user_id}
     </select>
 
-    <select id="getQuestListByBadgeId" resultType="com.jigubangbang.quest_service.model.BadgeModalDto" parameterType="int">
+    <select id="getBadgePublicModalBase" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgePublicModalDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.difficulty,
+            b.created_at
+        FROM badge b
+        WHERE b.id = #{badge_id}
+    </select>
+
+    <select id="getQuestListByBadgeId" resultType="com.jigubangbang.quest_service.model.QuestDto" parameterType="int">
         SELECT 
             q.id,
             q.title

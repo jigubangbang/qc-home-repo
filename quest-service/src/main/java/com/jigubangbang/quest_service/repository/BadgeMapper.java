@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.BadgeModalDto;
+import com.jigubangbang.quest_service.model.BadgePublicModalDto;
 import com.jigubangbang.quest_service.model.BadgeQuestDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
@@ -19,6 +20,7 @@ public interface BadgeMapper {
 
     //모달
     public BadgeModalDto getBadgeModalBase(Map<String, Object> params);
+    public BadgePublicModalDto getBadgePublicModalBase(int badge_id);
     public List<QuestDto> getQuestListByBadgeId(int badge_id);
     public int getCompletedQuestCount(Map<String, Object> params);
     public int getAwardedUserCount(int badge_id);

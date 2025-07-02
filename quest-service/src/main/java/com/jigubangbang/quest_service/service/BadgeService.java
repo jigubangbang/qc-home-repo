@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.BadgeModalDto;
+import com.jigubangbang.quest_service.model.BadgePublicModalDto;
 import com.jigubangbang.quest_service.model.BadgeQuestDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
@@ -72,6 +73,28 @@ public class BadgeService {
         int completedQuest = badgeMapper.getCompletedQuestCount(params);
         badgeModal.setCompleted_quest(completedQuest);
         badgeModal.setTotal_quest(questList.size());
+
+        //뱃지 획득자 조회
+        int countAwarded = badgeMapper.getAwardedUserCount(badge_id);
+        badgeModal.setCount_awarded(countAwarded);
+
+        //뱃지 획득자 리스트
+        List<QuestSimpleParticipantDto> awardedUsers = badgeMapper.getAwardedUserList(badge_id);
+        badgeModal.setAwarded_user(awardedUsers);
+        return badgeModal;
+    } 
+
+    public BadgePublicModalDto getBadgePublicModal(int badge_id){
+        //기본 정보
+        BadgePublicModalDto badgeModal = badgeMapper.getBadgePublicModalBase(badge_id);
+
+        if(badgeModal == null){
+            return null;
+        }
+        
+        //퀘스트 리스트
+        List<QuestDto> questList = badgeMapper.getQuestListByBadgeId(badge_id);
+        badgeModal.setQuest_list(questList);
 
         //뱃지 획득자 조회
         int countAwarded = badgeMapper.getAwardedUserCount(badge_id);
