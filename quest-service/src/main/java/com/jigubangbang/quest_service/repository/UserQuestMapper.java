@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestCerti;
+import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestImageDto;
 import com.jigubangbang.quest_service.model.QuestModalDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
@@ -36,4 +37,6 @@ public interface UserQuestMapper {
     public void insertQuestImages(List<QuestImageDto> images);
 
 
+    List<QuestDto> getUserQuests(Map<String, Object> params);
+    int countUserQuests(Map<String, Object> params);
 }

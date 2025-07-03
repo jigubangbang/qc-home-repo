@@ -20,6 +20,7 @@ public class QuestUserDto {
     private String difficulty; // ENUM('EASY', 'MEDIUM', 'HARD')
     private int xp;
 
+    private String description;
     private String icon;
     private String badge;
     private int progress;

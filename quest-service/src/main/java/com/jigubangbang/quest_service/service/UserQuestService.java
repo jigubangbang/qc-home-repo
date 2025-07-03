@@ -181,4 +181,37 @@ public class UserQuestService {
     public void abandonQuest(int quest_user_id){
         userQuestMapper.updateQuestUserAbandon(quest_user_id);
     }
+
+    public Map<String, Object> getUserQuests(String userId, int pageNum, int category, String sortOption, String difficulty, String search, int limit){
+        Map<String, Object> params = new HashMap<>();
+        params.put("user_id", userId); // 사용자 ID 추가
+        
+        if (category != 0){
+            params.put("category", category);
+        }
+        if (sortOption != null && !sortOption.isEmpty()) {
+            params.put("sortOption", sortOption);
+        }
+        if (difficulty != null && !difficulty.isEmpty()) {
+            params.put("difficulty", difficulty);
+        }
+        if (search != null && !search.isEmpty()) {
+            params.put("search", search);
+        }
+        
+        int offset = (pageNum-1)*limit;
+        params.put("limit", limit);
+        params.put("offset", offset);
+
+        List<QuestDto> quests = userQuestMapper.getUserQuests(params);
+        int totalCount = userQuestMapper.countUserQuests(params);
+        int pageCount = (int) Math.ceil((double) totalCount/limit);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("quests", quests);
+        result.put("pageCount", pageCount);
+        result.put("totalCount", totalCount);
+        result.put("currentPage", pageNum);
+        return result;
+    }
 }

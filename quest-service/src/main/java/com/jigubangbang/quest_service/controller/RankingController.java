@@ -25,9 +25,10 @@ public class RankingController {
         if (ranking != null) {
             return ResponseEntity.ok(ranking);
         } else {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(setNullRanking());
         }
     }
+
 
     @GetMapping("/weekly-level")
     public ResponseEntity<RankingDto> getWeeklyLevelRanking() {
@@ -35,7 +36,7 @@ public class RankingController {
         if (ranking != null) {
             return ResponseEntity.ok(ranking);
         } else {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(setNullRanking());
         }
     }
 
@@ -45,7 +46,7 @@ public class RankingController {
         if (ranking != null) {
             return ResponseEntity.ok(ranking);
         } else {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(setNullRanking());
         }
     }
 
@@ -55,8 +56,21 @@ public class RankingController {
         if (ranking != null) {
             return ResponseEntity.ok(ranking);
         } else {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(setNullRanking());
         }
+    }
+
+        
+    public RankingDto setNullRanking(){
+        RankingDto nullRanking = new RankingDto();
+        nullRanking.setUser_id("No Person");
+        nullRanking.setNickname("null");
+        nullRanking.setProfile_image("/icons/common/user_profile.svg");
+        nullRanking.setLevel(0);
+        nullRanking.setWeekly_quest_count(0);
+        nullRanking.setWeekly_level_gain(0);
+        nullRanking.setTotal_quest_count(0);
+        return nullRanking;
     }
 
     @GetMapping("/rankings")

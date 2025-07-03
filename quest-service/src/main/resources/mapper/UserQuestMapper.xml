@@ -121,6 +121,7 @@
             q.title AS title,
             q.difficulty AS difficulty,
             q.xp AS xp,
+            q.description AS description,
             (SELECT b.icon 
             FROM badge_quest bq 
             JOIN badge b ON bq.badge_id = b.id 
@@ -228,4 +229,104 @@
         SET status = 'GIVEN_UP', given_up_at = CURRENT_TIMESTAMP
         WHERE id = #{quest_user_id}
     </update>
+
+    <select id="getUserQuests" resultType="com.jigubangbang.quest_service.model.QuestDto" parameterType="map">
+    SELECT 
+        q.id,
+        q.type,
+        q.category,
+        q.title,
+        q.difficulty,
+        q.description,
+        q.xp,
+        q.is_seasonal,
+        q.season_start,
+        q.season_end,
+        q.status,
+        q.created_at,
+        
+        (SELECT b.icon 
+        FROM badge_quest bq 
+        JOIN badge b ON bq.badge_id = b.id 
+        WHERE bq.quest_id = q.id 
+        ORDER BY bq.badge_id DESC 
+        LIMIT 1) AS icon,
+
+        (SELECT COUNT(*) 
+        FROM quest_user qu 
+        WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
+        ) AS count_in_progress,
+
+        (SELECT COUNT(*) 
+        FROM quest_user qu 
+        WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
+        ) AS count_completed,
+        
+        -- 사용자의 퀘스트 상태 추가
+        COALESCE(qu_user.status, null) AS user_status
+        
+    FROM quest q
+    LEFT JOIN quest_user qu_user ON q.id = qu_user.quest_id AND qu_user.user_id = #{user_id}
+    <where>
+        1=1
+        <if test="category != null and category != 0">
+            AND q.category = #{category}
+        </if>
+        <if test="difficulty != null and difficulty != ''">
+            AND q.difficulty = #{difficulty}
+        </if>
+        <if test="search != null and search != ''">
+            AND (q.title LIKE CONCAT('%', #{search}, '%') 
+            OR q.description LIKE CONCAT('%', #{search}, '%') 
+            OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
+        </if>
+    </where>
+
+    <choose>
+        <when test="sortOption == 'latest'">
+            ORDER BY q.created_at DESC
+        </when>
+        
+        <when test="sortOption == 'oldest'">
+            ORDER BY q.created_at ASC
+        </when>
+        
+        <when test="sortOption == 'xp_high'">
+            ORDER BY q.xp DESC
+        </when>
+        
+        <when test="sortOption == 'xp_low'">
+            ORDER BY q.xp ASC
+        </when>
+
+        <when test="sortOption == 'default'">
+            ORDER BY q.id ASC
+        </when>
+
+        <otherwise>
+            ORDER BY q.id ASC
+        </otherwise>
+    </choose>
+    LIMIT #{limit} OFFSET #{offset}
+</select>
+
+    <select id="countUserQuests" resultType="int" parameterType="map">
+        SELECT COUNT(*)
+        FROM quest q
+        LEFT JOIN quest_user qu_user ON q.id = qu_user.quest_id AND qu_user.user_id = #{user_id}
+        <where>
+            1=1
+            <if test="category != null and category != 0">
+                AND q.category = #{category}
+            </if>
+            <if test="difficulty != null and difficulty != ''">
+                AND q.difficulty = #{difficulty}
+            </if>
+            <if test="search != null and search != ''">
+                AND (q.title LIKE CONCAT('%', #{search}, '%') 
+                OR q.description LIKE CONCAT('%', #{search}, '%') 
+                OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
+            </if>
+        </where>
+    </select>
 </mapper>

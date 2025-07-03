@@ -5,8 +5,8 @@
 
 <mapper namespace="com.jigubangbang.quest_service.repository.AdminQuestMapper">
     <insert id="createQuest" parameterType="com.jigubangbang.quest_service.model.QuestDto">
-        INSERT INTO quest (type, category, title, difficulty, xp, is_seasonal, season_start, season_end, status, created_at)
-        VALUES (#{type}, #{category}, #{title}, #{difficulty}, #{xp}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
+        INSERT INTO quest (type, category, title, difficulty, xp, description, is_seasonal, season_start, season_end, status, created_at)
+        VALUES (#{type}, #{category}, #{title}, #{difficulty}, #{description}, #{xp}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
     </insert>
 
     <update id="updateQuest" parameterType="map">

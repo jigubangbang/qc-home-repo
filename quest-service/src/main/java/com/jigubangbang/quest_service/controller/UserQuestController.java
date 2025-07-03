@@ -49,6 +49,22 @@ public class UserQuestController {
         return ResponseEntity.ok(quest);
         }
 
+    @GetMapping("/list")
+    public ResponseEntity<Map<String, Object>> getUserQuestList(
+        @RequestParam(defaultValue="1") int pageNum,
+        @RequestParam(defaultValue="0") int category,
+        @RequestParam(required=false) String sortOption,
+        @RequestParam(required=false) String difficulty,
+        @RequestParam(required=false) String search,
+        @RequestParam(defaultValue = "10") int limit
+    ){
+        //#NeedToChange 실제 로그인한 사용자 ID 가져오기
+        String userId = "aaa"; // 현재는 하드코딩, 실제로는 JWT에서 추출
+        
+        Map<String, Object> result = userQuestService.getUserQuests(userId, pageNum, category, sortOption, difficulty, search, limit);
+        return ResponseEntity.ok(result);
+    }
+
     //퀘스트 도전
     @PostMapping("/challenge/{quest_id}")
     public ResponseEntity<Map<String, Object>> challengeQuest(

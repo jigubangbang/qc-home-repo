@@ -25,4 +25,6 @@ public class QuestDto {
     //join
     private int count_in_progress;
     private int count_completed;
+
+    private String user_status;
 }
