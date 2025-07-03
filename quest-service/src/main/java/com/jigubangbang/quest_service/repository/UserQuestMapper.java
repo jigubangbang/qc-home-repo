@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
 
+import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestImageDto;
 import com.jigubangbang.quest_service.model.QuestModalDto;
@@ -18,9 +19,11 @@ public interface UserQuestMapper {
     public QuestModalDto getQuestModalById(Map<String, Object> params);
     List<QuestSimpleParticipantDto> getInProgressUsers(int quest_id);
     List<QuestSimpleParticipantDto> getCompletedUsers(int quest_id);
+    List<BadgeDto> getBadgesByQuestId(int quest_id);
     
     public int countUserQuest(Map<String, Object> params);
     public void insertQuestUser(QuestUserDto questUser);
+    public void reChallengeQuestUser(Map<String, Object> params);
     
     public UserJourneyDto getUserJourney(String user_id);
     public List<QuestUserDto> getUserQuestList(Map<String, Object> params);
@@ -28,7 +31,7 @@ public interface UserQuestMapper {
     public List<String> getQuestCertiImages(int quest_user_id);
 
     public String getQuestType(int quest_user_id);
-    public void updateQuestUserPending(int quest_user_id);
+    public void updateQuestUserCompleted(Map<String, Object> params);
     public int updateQuestUserAbandon(int quest_user_id);
     public void insertQuestImages(List<QuestImageDto> images);
 

@@ -184,26 +184,28 @@
             q.season_start,
             q.season_end,
             q.status,
-            
-            (SELECT b.id FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as badge_id,
-            (SELECT b.icon FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as badge_icon,
-            (SELECT b.kor_title FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as kor_title,
-            (SELECT b.eng_title FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as eng_title,
-            
-            -- 진행/완료 카운트
+
             (SELECT COUNT(*) FROM quest_user qu_prog WHERE qu_prog.quest_id = q.id AND qu_prog.status = 'IN_PROGRESS') as count_in_progress,
             (SELECT COUNT(*) FROM quest_user qu_comp WHERE qu_comp.quest_id = q.id AND qu_comp.status = 'COMPLETED') as count_completed
             
         FROM quest q
         WHERE q.id = #{quest_id}
+    </select>
+
+    <select id="getBadgesByQuestId" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.created_at,
+            b.difficulty,
+            (SELECT COUNT(*) FROM badge_user bu WHERE bu.badge_id = b.id) as acquired_count
+        FROM badge_quest bq
+        JOIN badge b ON bq.badge_id = b.id
+        WHERE bq.quest_id = #{quest_id}
+        ORDER BY b.id
     </select>
 
     <select id="getInProgressUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">

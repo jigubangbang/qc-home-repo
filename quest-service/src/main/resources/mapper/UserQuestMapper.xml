@@ -28,20 +28,6 @@
             qu.completed_at,
             qu.given_up_at,
             
-            (SELECT b.id FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as badge_id,
-            (SELECT b.icon FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as badge_icon,
-            (SELECT b.kor_title FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as kor_title,
-            (SELECT b.eng_title FROM badge_quest bq 
-            JOIN badge b ON bq.badge_id = b.id 
-            WHERE bq.quest_id = q.id LIMIT 1) as eng_title,
-            
-            -- 진행/완료 카운트
             (SELECT COUNT(*) FROM quest_user qu_prog WHERE qu_prog.quest_id = q.id AND qu_prog.status = 'IN_PROGRESS') as count_in_progress,
             (SELECT COUNT(*) FROM quest_user qu_comp WHERE qu_comp.quest_id = q.id AND qu_comp.status = 'COMPLETED') as count_completed
             
@@ -49,6 +35,22 @@
         LEFT JOIN user u ON u.user_id = #{current_user_id} 
         LEFT JOIN quest_user qu ON q.id = qu.quest_id AND qu.user_id = #{current_user_id} 
         WHERE q.id = #{quest_id}
+    </select>
+
+    <select id="getBadgesByQuestId" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.created_at,
+            b.difficulty,
+            (SELECT COUNT(*) FROM badge_user bu WHERE bu.badge_id = b.id) as acquired_count
+        FROM badge_quest bq
+        JOIN badge b ON bq.badge_id = b.id
+        WHERE bq.quest_id = #{quest_id}
+        ORDER BY b.id
     </select>
 
     <select id="getInProgressUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
@@ -82,8 +84,14 @@
 
     <select id="countUserQuest" parameterType="map" resultType="int">
         SELECT COUNT(*) FROM quest_user
-        WHERE user_id = #{user_id} AND quest_id = #{quest_id}
+        WHERE user_id = #{user_id} AND quest_id = #{quest_id} AND status != 'GIVEN_UP'
     </select>
+
+    <update id="reChallengeQuestUser" parameterType="map">
+        UPDATE quest_user
+        SET status="IN_PROGRESS"
+        WHERE user_id=#{user_id} AND quest_id=#{quest_id}
+    </update>
     
     <select id="getUserJourney" parameterType="String" resultType="com.jigubangbang.quest_service.model.UserJourneyDto">
         SELECT 
@@ -194,9 +202,9 @@
         WHERE quest_user_id = #{quest_user_id}
     </select>
 
-    <update id="updateQuestUserPending" parameterType="int">
+    <update id="updateQuestUserCompleted" parameterType="map">
         UPDATE quest_user
-        SET status = 'PENDING', completed_at = CURRENT_TIMESTAMP
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, description=#{quest_description}
         WHERE id = #{quest_user_id}
     </update>
 
@@ -204,6 +212,7 @@
         SELECT q.type 
         FROM quest q
         JOIN quest_user qu ON qu.quest_id = q.id
+        WHERE qu.id = #{quest_user_id}
     </select>
 
     <insert id="insertQuestImages" parameterType="java.util.List">

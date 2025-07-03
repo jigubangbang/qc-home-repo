@@ -26,25 +26,28 @@ public class AdminQuestController {
     @Autowired
     private AdminQuestService adminQuestService;
     
+    //퀘스트 생성
     @PostMapping("/create")
     public ResponseEntity<QuestDto> createQuest(@RequestBody QuestDto quest){
         QuestDto createdQuest = adminQuestService.createQuest(quest);
         return ResponseEntity.ok(createdQuest);
     }
-
+    
+    //퀘스트 수정
     @PutMapping("/{quest_id}")
     public ResponseEntity<QuestDto> updateQuest(@PathVariable int quest_id, @RequestBody QuestDto quest){
         QuestDto updatedQuest = adminQuestService.updateQuest(quest_id, quest);
         return ResponseEntity.ok(updatedQuest);
     }
 
+    //퀘스트 삭제
     @DeleteMapping("/{quest_id}")
     public ResponseEntity<Void> deleteQuest(@PathVariable int quest_id){
         adminQuestService.deleteQuest(quest_id);
         return ResponseEntity.noContent().build();
     }
 
-    //퀘스트 인증 목록 조회 (승인 대기)
+    //퀘스트 인증 목록 조회 (모든 퀘스트)
     @GetMapping("/list")
     public Map<String, Object> getAdminQuestList(
         @RequestParam(defaultValue="1") int pageNum,
@@ -60,37 +63,39 @@ public class AdminQuestController {
         return adminQuestService.getQuestCerti(quest_user_id);
     }
     
-    @PutMapping("/{quest_user_id}/approve")
-    public ResponseEntity<Map<String, Object>> approveQuest(@PathVariable int quest_user_id){
-        try {
-            Map<String, Object> result = adminQuestService.approveQuest(quest_user_id);
+    //#NeedToChange
+    // @PutMapping("/{quest_user_id}/approve")
+    // public ResponseEntity<Map<String, Object>> approveQuest(@PathVariable int quest_user_id){
+    //     try {
+    //         Map<String, Object> result = adminQuestService.approveQuest(quest_user_id);
             
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "퀘스트 승인 완료");
-            response.put("badgeAwarded", result.get("badgeAwarded"));
-            response.put("awardedBadges", result.get("awardedBadges"));
+    //         Map<String, Object> response = new HashMap<>();
+    //         response.put("success", true);
+    //         response.put("message", "퀘스트 승인 완료");
+    //         response.put("badgeAwarded", result.get("badgeAwarded"));
+    //         response.put("awardedBadges", result.get("awardedBadges"));
             
-            return ResponseEntity.ok(response);
+    //         return ResponseEntity.ok(response);
             
-        } catch (Exception e) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("message", "퀘스트 승인 중 오류가 발생했습니다: " + e.getMessage());
-            errorResponse.put("badgeAwarded", false);
-            errorResponse.put("awardedBadges", new ArrayList<>());
+    //     } catch (Exception e) {
+    //         Map<String, Object> errorResponse = new HashMap<>();
+    //         errorResponse.put("success", false);
+    //         errorResponse.put("message", "퀘스트 승인 중 오류가 발생했습니다: " + e.getMessage());
+    //         errorResponse.put("badgeAwarded", false);
+    //         errorResponse.put("awardedBadges", new ArrayList<>());
             
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
+    //         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    //     }
+    // }
     
+    //reject -> 삭제로
     @PutMapping("/{quest_user_id}/reject")
     public ResponseEntity<Map<String, Object>> rejectQuest(@PathVariable int quest_user_id){
         Map<String, Object> response = new HashMap<>();
         
         adminQuestService.rejectQuest(quest_user_id);
         response.put("success", true);
-        response.put("message", "퀘스트 거절 완료");
+        response.put("message", "퀘스트 인증 취소 완료");
         return ResponseEntity.ok(response);
     }
 }

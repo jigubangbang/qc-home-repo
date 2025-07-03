@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,13 +14,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestModalDto;
 import com.jigubangbang.quest_service.model.QuestUserDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
+import com.jigubangbang.quest_service.service.S3Service;
 import com.jigubangbang.quest_service.service.UserQuestService;
 
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
@@ -27,6 +31,9 @@ import jakarta.servlet.http.HttpServletRequest;
 public class UserQuestController {
     @Autowired
     private UserQuestService userQuestService;
+
+    @Resource
+    private S3Service s3Service;
 
     //quest 조회
     @GetMapping("/detail/{quest_id}")
@@ -43,10 +50,10 @@ public class UserQuestController {
         }
 
     //퀘스트 도전
-    @PostMapping("/challenge")
+    @PostMapping("/challenge/{quest_id}")
     public ResponseEntity<Map<String, Object>> challengeQuest(
         HttpServletRequest request,
-        @RequestParam("quest_id") int quest_id
+        @PathVariable("quest_id") int quest_id
     ){
         //#NeedToChange
         //session에서 user id 받아오기
@@ -63,6 +70,30 @@ public class UserQuestController {
         userQuestService.challengeQuest(user_id, quest_id);
         response.put("success", true);
         response.put("message", "퀘스트 도전 완료");
+        return ResponseEntity.ok(response);
+    }
+
+    //재도전
+    @PostMapping("/reChallenge/{quest_id}")
+    public ResponseEntity<Map<String, Object>> reChallengeQuest(
+        HttpServletRequest request,
+        @PathVariable("quest_id") int quest_id
+    ){
+        //#NeedToChange
+        //session에서 user id 받아오기
+        String user_id = "aaa";
+        Map<String, Object> response = new HashMap<>();
+
+        //중복 체크
+        if (userQuestService.countUserQuest(user_id, quest_id)>0){
+            response.put("success", false);
+            response.put("message", "이미 도전 중인 퀘스트입니다");
+            return ResponseEntity.ok(response);
+        }
+
+        userQuestService.reChallengeQuest(user_id, quest_id);
+        response.put("success", true);
+        response.put("message", "퀘스트 재도전 완료");
         return ResponseEntity.ok(response);
     }
 
@@ -120,6 +151,23 @@ public class UserQuestController {
         return ResponseEntity.ok(questCerti);
     }
     
+    // 이미지 업로드 엔드포인트
+    @PostMapping("/{quest_user_id}/upload-image")
+    public ResponseEntity<Map<String, Object>> uploadQuestImage(
+        @RequestParam("file") MultipartFile file, 
+        @PathVariable("quest_user_id") int quest_user_id) {
+        try {
+            String s3Url = s3Service.uploadFile(file, "quest-images/");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Uploaded quest image successfully");
+            response.put("imageUrl", s3Url);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Upload failed"));
+        }
+    }
 
     //퀘스트 완료 제출
     @PostMapping("/{quest_user_id}/complete")
@@ -127,10 +175,7 @@ public class UserQuestController {
         @PathVariable("quest_user_id") int quest_user_id,
         @RequestBody QuestCerti completeRequest)
     {
-        Map<String, Object> response = new HashMap<>();
-        userQuestService.completeQuest(quest_user_id, completeRequest);
-        response.put("success", true);
-        response.put("message", "퀘스트 인증 전송 완료");
+        Map<String, Object> response = userQuestService.completeQuest(quest_user_id, completeRequest);
         return ResponseEntity.ok(response);    
     }
 

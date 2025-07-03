@@ -2,9 +2,6 @@ package com.jigubangbang.quest_service.model;
 
 import java.sql.Timestamp;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import lombok.Getter;
 import lombok.Setter;
 

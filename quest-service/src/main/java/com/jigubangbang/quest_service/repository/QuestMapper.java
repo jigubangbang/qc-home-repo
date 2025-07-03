@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
 
+import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestParticipantDto;
 import com.jigubangbang.quest_service.model.QuestPublicModalDto;
@@ -24,5 +25,6 @@ public interface QuestMapper {
     public QuestPublicModalDto getQuestModalById(int quest_id);
     List<QuestSimpleParticipantDto> getInProgressUsers(int quest_id);
     List<QuestSimpleParticipantDto> getCompletedUsers(int quest_id);
+    List<BadgeDto> getBadgesByQuestId(int quest_id);
 
 }

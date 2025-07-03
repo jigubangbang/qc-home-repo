@@ -20,10 +20,11 @@ public interface AdminQuestMapper {
     public QuestCerti getQuestCerti(int quest_user_id);
     public List<String> getQuestCertiImageList(int quest_user_id);
 
-    public int updateQuestUserApprove(int quest_user_id);
+    //public int updateQuestUserApprove(int quest_user_id);
     public int updateQuestUserReject(int quest_user_id);
 
     public void updateUserXp(Map<String, Object> params);
+    public void updateUserLevel(String user_id);
 
     //badge 지급
     public List<Integer> getBadgeIdsByQuestId(int quest_id);
@@ -32,7 +33,7 @@ public interface AdminQuestMapper {
 
     public List<Integer> getCompletedQuestsByUserAndBadge(String user_id, int badge_id);
 
-    public boolean checkUserHasBadge(String user_id, int badge_id);
+    public int checkUserHasBadge(String user_id, int badge_id);
 
     public void insertUserBadge(Map<String, Object> params);
 }

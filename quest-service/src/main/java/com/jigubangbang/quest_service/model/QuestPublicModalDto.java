@@ -22,10 +22,7 @@ public class QuestPublicModalDto {
     private String status;       // ENUM( 'AUTH', 'CHECK' )
 
     //badge
-    private int badge_id;
-    private String badge_icon;
-    private String kor_title;
-    private String eng_title;
+    private List<BadgeDto> badges;
 
     //join
     private int count_in_progress;  //이 퀘스트를 진행 중인 사람

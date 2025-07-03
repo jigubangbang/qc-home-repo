@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestParticipantDto;
 import com.jigubangbang.quest_service.model.QuestPublicModalDto;
@@ -70,6 +71,9 @@ public class QuestService {
         if (questModal == null){
             return null;
         }
+
+        List<BadgeDto> badges = questMapper.getBadgesByQuestId(quest_id);
+        questModal.setBadges(badges);
 
         List<QuestSimpleParticipantDto> inProgressUsers = questMapper.getInProgressUsers(quest_id);
         questModal.setIn_progress_user(inProgressUsers);

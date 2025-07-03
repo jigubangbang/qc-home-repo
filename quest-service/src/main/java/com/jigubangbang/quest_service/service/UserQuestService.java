@@ -8,19 +8,30 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestCerti;
+import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestImageDto;
 import com.jigubangbang.quest_service.model.QuestModalDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
 import com.jigubangbang.quest_service.model.QuestUserDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
+import com.jigubangbang.quest_service.repository.AdminQuestMapper;
+import com.jigubangbang.quest_service.repository.QuestMapper;
 import com.jigubangbang.quest_service.repository.UserQuestMapper;
 
 @Service
 public class UserQuestService {
     @Autowired
     private UserQuestMapper userQuestMapper;
+
+    @Autowired 
+    private QuestMapper questMapper;
+    
+    @Autowired
+    private AdminQuestMapper adminQuestMapper;
 
     public QuestModalDto getQuestModalById(String current_user_id, int quest_id){
         Map<String, Object> params = new HashMap<>();
@@ -31,6 +42,9 @@ public class UserQuestService {
         if (questModal == null){
             return null;
         }
+
+        List<BadgeDto> badges = userQuestMapper.getBadgesByQuestId(quest_id);
+        questModal.setBadges(badges);
 
         List<QuestSimpleParticipantDto> inProgressUsers = userQuestMapper.getInProgressUsers(quest_id);
         questModal.setIn_progress_user(inProgressUsers);
@@ -57,6 +71,13 @@ public class UserQuestService {
         userQuestMapper.insertQuestUser(questUser);
     }
 
+    public void reChallengeQuest(String user_id, int quest_id){
+        Map<String, Object> params = new HashMap<>();
+        params.put("user_id", user_id);
+        params.put("quest_id", quest_id);
+        userQuestMapper.reChallengeQuestUser(params);
+    }
+
     //#NeedToChange
     public UserJourneyDto getUserJourney(String user_id){
         return userQuestMapper.getUserJourney(user_id);
@@ -79,11 +100,16 @@ public class UserQuestService {
         return questCerti;
     }
 
-    public void completeQuest(int quest_user_id, QuestCerti request){
-        userQuestMapper.updateQuestUserPending(quest_user_id);
+    @Transactional
+    public Map<String, Object> completeQuest(int quest_user_id, QuestCerti request){
+        Map<String, Object> params2 = new HashMap<>();
+        params2.put("quest_user_id", quest_user_id);
+        params2.put("quest_description", request.getQuest_description());
+        userQuestMapper.updateQuestUserCompleted(params2);
 
         String type = userQuestMapper.getQuestType(quest_user_id);
 
+        //이미지 데이터 채우기
         if ("AUTH".equals(type) && request.getImage_list() != null && !request.getImage_list().isEmpty()) {
             List<QuestImageDto> images = new ArrayList<>();
             for (String imageUrl : request.getImage_list()) {
@@ -95,10 +121,62 @@ public class UserQuestService {
             userQuestMapper.insertQuestImages(images);
         }
 
+        Map<String, Object> result = new HashMap<>();
+        result.put("badgeAwarded", false);
+        result.put("awardedBadges", new ArrayList<>());
+
+        QuestCerti questCerti = userQuestMapper.getQuestCerti(quest_user_id);
+        QuestDto quest = questMapper.selectQuestById(questCerti.getQuest_id());
+        
+        if (quest != null && quest.getXp() > 0 ){
+            Map<String, Object> params = new HashMap<>();
+            params.put("user_id", questCerti.getUser_id());
+            params.put("xp", quest.getXp());
+            adminQuestMapper.updateUserXp(params);
+            adminQuestMapper.updateUserLevel(questCerti.getUser_id());
+        }
+
+        if (questCerti != null){
+            List<Integer> awardedBadges = checkAndAwardBadges(questCerti.getUser_id(), questCerti.getQuest_id());
+            if (!awardedBadges.isEmpty()){
+                result.put("badgeAwarded", true);
+                result.put("awardedBadges", awardedBadges);
+            }
+        }
+        return result;
         //#NeedToChange
-        //CHECK일 경우 검증..
     }
 
+    private List<Integer> checkAndAwardBadges(String user_id, int completed_quest_id){
+        List<Integer> awardedBadges = new ArrayList<>();
+
+        List<Integer> relatedBadgeIds = adminQuestMapper.getBadgeIdsByQuestId(completed_quest_id);
+        
+        for (int badge_id : relatedBadgeIds){
+            List<Integer> requiredQuestIds = adminQuestMapper.getRequiredQuestsByBadgeId(badge_id);
+            
+            List<Integer> completedQuestIds = adminQuestMapper.getCompletedQuestsByUserAndBadge(user_id, badge_id);
+
+            if (completedQuestIds.containsAll(requiredQuestIds)){
+                boolean alreadyHasBadge = false;
+
+                if (adminQuestMapper.checkUserHasBadge(user_id, badge_id)>0){
+                    alreadyHasBadge = true;
+                }
+
+                if(!alreadyHasBadge){
+                    Map<String, Object> badgeParams = new HashMap<>();
+                    badgeParams.put("user_id", user_id);
+                    badgeParams.put("badge_id", badge_id);
+                    adminQuestMapper.insertUserBadge(badgeParams);
+
+                    awardedBadges.add(badge_id);
+                }
+            }
+        }
+
+        return awardedBadges;
+    }
 
     public void abandonQuest(int quest_user_id){
         userQuestMapper.updateQuestUserAbandon(quest_user_id);
