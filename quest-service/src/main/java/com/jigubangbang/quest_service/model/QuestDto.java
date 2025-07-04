@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 public class QuestDto {
     private int id;
-    private String type;         // ENUM('AUTH', 'CHECK')
+    private String type;       
     private int category;
     private String title;
     private String difficulty;  // ENUM('EASY', 'MEDIUM', 'HARD')

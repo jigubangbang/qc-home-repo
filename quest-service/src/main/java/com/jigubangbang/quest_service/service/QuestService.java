@@ -8,16 +8,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.jigubangbang.quest_service.model.BadgeDto;
+import com.jigubangbang.quest_service.model.QuestCategoryDto;
+import com.jigubangbang.quest_service.model.QuestDetailDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestParticipantDto;
 import com.jigubangbang.quest_service.model.QuestPublicModalDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
+import com.jigubangbang.quest_service.model.UserBadgeDto;
+import com.jigubangbang.quest_service.repository.BadgeMapper;
 import com.jigubangbang.quest_service.repository.QuestMapper;
 
 @Service
 public class QuestService {
     @Autowired
     private QuestMapper questMapper;
+
+    @Autowired
+    private BadgeMapper badgeMapper;
 
     public Map<String, Object> getQuests(int pageNum, int category, String sortOption, String difficulty, String search, int limit){
         Map<String, Object> params = new HashMap<>();
@@ -82,5 +89,56 @@ public class QuestService {
         questModal.setCompleted_user(completedUsers);
 
         return questModal;
+    }
+
+    public Map<String, Object> getUserPageData(String userId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // 유저 기본 정보
+        Map<String, Object> userInfo = questMapper.getUserInfo(userId);
+        result.put("user", userInfo);
+        
+        // 퀘스트 정보
+        Map<String, Object> questInfo = new HashMap<>();
+        
+        // 진행 중인 퀘스트
+        List<QuestDetailDto> inProgressQuests = questMapper.getUserInProgressQuests(userId);
+        questInfo.put("count_in_progress", inProgressQuests.size());
+        questInfo.put("in_progress_quests", inProgressQuests);
+        
+        // 완료된 퀘스트
+        List<QuestDetailDto> completedQuests = questMapper.getUserCompletedQuests(userId);
+        questInfo.put("count_completed", completedQuests.size());
+        questInfo.put("completed_quests", completedQuests);
+        
+        // 카테고리별 퀘스트 정보 (각 카테고리의 진행중/완료/전체 퀘스트 수)
+        List<QuestCategoryDto> totalQuests = questMapper.getQuestCategoriesWithUserStats(userId);
+        questInfo.put("total_quests", totalQuests);
+        
+        // 전체 퀘스트 수 (시스템 전체의 모든 퀘스트 개수, 유저와 관계없음)
+        int totalQuestCount = questMapper.getTotalQuestCount();
+        questInfo.put("count_total_quest", totalQuestCount);
+        
+        result.put("quest", questInfo);
+        
+        // 뱃지 정보
+        Map<String, Object> badgeInfo = new HashMap<>();
+        
+        // 대표 뱃지
+        BadgeDto pinnedBadge = questMapper.getUserPinnedBadge(userId);
+        badgeInfo.put("pinned_badge", pinnedBadge);
+        
+        // 모든 뱃지 정보 (획득 여부 포함) - badgeMapper의 기존 메서드 활용
+        List<UserBadgeDto> badges = badgeMapper.getUserBadgeInfo(userId);
+        badgeInfo.put("badges", badges);
+        
+        // 뱃지 카운트
+        Map<String, Integer> badgeCounts = questMapper.getUserBadgeCounts(userId);
+        badgeInfo.put("count_total_badge", badgeCounts.get("total"));
+        badgeInfo.put("count_awarded_badge", badgeCounts.get("awarded"));
+        
+        result.put("badge", badgeInfo);
+        
+        return result;
     }
 }

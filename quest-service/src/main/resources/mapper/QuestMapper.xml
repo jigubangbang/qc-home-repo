@@ -231,4 +231,137 @@
         AND qu.status = 'COMPLETED'
         ORDER BY qu.completed_at DESC
     </select>
+
+    <select id="getUserInfo" parameterType="String" resultType="map">
+        SELECT 
+            user_id,
+            profile_image,
+            nickname,
+            xp,
+            level
+        FROM user
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="getUserInProgressQuests" parameterType="String" resultType="com.jigubangbang.quest_service.model.QuestDetailDto">
+        SELECT 
+            qu.id as quest_user_id,
+            qu.user_id,
+            qu.quest_id,
+            qu.status,
+            qu.started_at,
+            qu.completed_at,
+            qu.given_up_at,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.description,
+            q.category,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end
+        FROM quest_user qu
+        INNER JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.user_id = #{userId} 
+        AND qu.status = 'IN_PROGRESS'
+        ORDER BY qu.started_at DESC
+    </select>
+
+    <!-- 사용자의 완료된 퀘스트 목록 조회 -->
+    <select id="getUserCompletedQuests" parameterType="String" resultType="com.jigubangbang.quest_service.model.QuestDetailDto">
+        SELECT 
+            qu.id as quest_user_id,
+            qu.user_id,
+            qu.quest_id,
+            qu.status,
+            qu.started_at,
+            qu.completed_at,
+            qu.given_up_at,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.description,
+            q.category,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end
+        FROM quest_user qu
+        INNER JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.user_id = #{userId} 
+        AND qu.status = 'COMPLETED'
+        ORDER BY qu.completed_at DESC
+    </select>
+
+    <!-- 시스템 전체의 모든 퀘스트 수 (유저와 관계없이) -->
+    <select id="getTotalQuestCount" resultType="int">
+        SELECT COUNT(*)
+        FROM quest
+    </select>
+
+    <!-- 각 카테고리별 정보와 사용자의 진행중/완료/전체 퀘스트 통계 -->
+    <select id="getQuestCategoriesWithUserStats" parameterType="String" resultType="com.jigubangbang.quest_service.model.QuestCategoryDto">
+        SELECT 
+            qc.id,
+            qc.title,
+            qc.subtitle,
+            COALESCE(progress_stats.count_in_progress, 0) as count_in_progress,
+            COALESCE(completed_stats.count_completed, 0) as count_completed,
+            COALESCE(total_stats.count_total, 0) as count_total
+        FROM quest_category qc
+        LEFT JOIN (
+            SELECT 
+                q.category,
+                COUNT(*) as count_in_progress
+            FROM quest q
+            INNER JOIN quest_user qu ON q.id = qu.quest_id
+            WHERE qu.user_id = #{userId} 
+            AND qu.status = 'IN_PROGRESS'
+            GROUP BY q.category
+        ) progress_stats ON qc.id = progress_stats.category
+        LEFT JOIN (
+            SELECT 
+                q.category,
+                COUNT(*) as count_completed
+            FROM quest q
+            INNER JOIN quest_user qu ON q.id = qu.quest_id
+            WHERE qu.user_id = #{userId} 
+            AND qu.status = 'COMPLETED'
+            GROUP BY q.category
+        ) completed_stats ON qc.id = completed_stats.category
+        LEFT JOIN (
+            SELECT 
+                category,
+                COUNT(*) as count_total
+            FROM quest
+            GROUP BY category
+        ) total_stats ON qc.id = total_stats.category
+        ORDER BY qc.id
+    </select>
+
+    <!-- 사용자의 대표 뱃지 조회 -->
+    <select id="getUserPinnedBadge" parameterType="String" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.created_at,
+            b.difficulty
+        FROM badge_user bu
+        INNER JOIN badge b ON bu.badge_id = b.id
+        WHERE bu.user_id = #{userId} 
+        AND bu.is_displayed = true
+        LIMIT 1
+    </select>
+
+    <!-- 사용자의 뱃지 카운트 조회 (전체 뱃지 수, 획득한 뱃지 수) -->
+    <select id="getUserBadgeCounts" parameterType="String" resultType="map">
+        SELECT 
+            (SELECT COUNT(*) FROM badge) as total,
+            (SELECT COUNT(*) 
+             FROM badge_user ub 
+             WHERE ub.user_id = #{userId} 
+             AND ub.awarded_at IS NOT NULL) as awarded
+    </select>
 </mapper>
