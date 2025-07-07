@@ -67,6 +67,7 @@ public class MyPageController {
 
         response.put("rank", rank);
         response.put("countUser", countUser);
+        response.put("user", user_id);
         return ResponseEntity.ok(response);
     }
 
@@ -85,6 +86,7 @@ public class MyPageController {
 
         response.put("rank", rank);
         response.put("countUser", countUser);
+        response.put("user", user_id);
         return ResponseEntity.ok(response);
     }
     

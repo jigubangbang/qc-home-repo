@@ -4,6 +4,155 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.jigubangbang.quest_service.repository.AdminQuestMapper">
+
+    <update id="updateQuestStatus">
+        UPDATE quest 
+            SET status = 'INACTIVE'
+            WHERE season_end IS NOT NULL 
+            AND season_end &lt; NOW() 
+            AND status = 'ACTIVE';
+    </update>
+
+    <select id="selectQuestList" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestDto">
+        SELECT 
+            q.id as quest_id,
+            q.type,
+            qc.subtitle as category,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            q.status,
+            q.created_at
+        FROM quest q
+        LEFT JOIN quest_category qc ON q.category = qc.id
+        <where>
+            <if test="search != null and search != ''">
+                AND (
+                    q.title LIKE CONCAT('%', #{search}, '%')
+                    OR qc.subtitle LIKE CONCAT('%', #{search}, '%')
+                    OR q.type LIKE CONCAT('%', #{search}, '%')
+                )
+            </if>
+            <if test="status != null and status != 'all'">
+                AND q.status = #{status}
+            </if>
+        </where>
+        <choose>
+            <when test="sortOption == 'title'">
+                ORDER BY q.title ASC
+            </when>
+            <when test="sortOption == 'title_desc'">
+                ORDER BY q.title DESC
+            </when>
+            <when test="sortOption == 'xp'">
+                ORDER BY q.xp ASC
+            </when>
+            <when test="sortOption == 'xp_desc'">
+                ORDER BY q.xp DESC
+            </when>
+            <when test="sortOption == 'created_at_desc'">
+                ORDER BY q.created_at DESC
+            </when>
+            <otherwise>
+                ORDER BY q.created_at ASC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectQuestCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM quest q
+        LEFT JOIN quest_category qc ON q.category = qc.id
+        <where>
+            <if test="search != null and search != ''">
+                AND (
+                    q.title LIKE CONCAT('%', #{search}, '%')
+                    OR qc.subtitle LIKE CONCAT('%', #{search}, '%')
+                    OR q.type LIKE CONCAT('%', #{search}, '%')
+                )
+            </if>
+            <if test="status != null and status != 'all'">
+                AND q.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectQuestDetail" parameterType="int" resultType="com.jigubangbang.quest_service.model.AdminQuestDetailDto">
+        SELECT 
+            q.id as quest_id,
+            q.type,
+            qc.subtitle as category,
+            q.title,
+            q.description,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            q.status,
+            q.created_at
+        FROM quest q
+        LEFT JOIN quest_category qc ON q.category = qc.id
+        WHERE q.id = #{quest_id}
+    </select>
+
+    <select id="selectQuestCompletedCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id} 
+          AND status = 'COMPLETED'
+    </select>
+
+    <select id="selectQuestInProgressCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id} 
+          AND status = 'IN_PROGRESS'
+    </select>
+
+    <select id="selectQuestGivenUpCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id} 
+          AND status = 'GIVEN_UP'
+    </select>
+
+
+    <select id="selectQuestUsers" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestUserDto">
+        SELECT 
+            quest_id,
+            id as quest_user_id,
+            user_id,
+            description,
+            status,
+            started_at,
+            completed_at,
+            given_up_at
+        FROM quest_user 
+        WHERE quest_id = #{quest_id}
+        ORDER BY started_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectQuestUsersCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id}
+    </select>
+
+    <select id="selectQuestUserImages" parameterType="int" resultType="string">
+        SELECT image
+        FROM quest_image 
+        WHERE quest_user_id = #{quest_user_id}
+        ORDER BY id ASC
+    </select>
+
+
+    <!-- 퀘스트 CURD -->
     <insert id="createQuest" parameterType="com.jigubangbang.quest_service.model.QuestDto">
         INSERT INTO quest (type, category, title, difficulty, xp, description, is_seasonal, season_start, season_end, status, created_at)
         VALUES (#{type}, #{category}, #{title}, #{difficulty}, #{description}, #{xp}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
@@ -112,12 +261,6 @@
         ORDER BY id ASC
     </select>
 
-    <!--
-    <update id="updateQuestUserApprove" parameterType="int">
-        UPDATE quest_user 
-        SET status = 'COMPLETED'
-        WHERE id = #{quest_user_id}
-    </update>-->
 
     <update id="updateQuestUserReject" parameterType="int">
         UPDATE quest_user 

@@ -4,12 +4,30 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
+import com.jigubangbang.quest_service.model.AdminQuestDetailDto;
+import com.jigubangbang.quest_service.model.AdminQuestDto;
+import com.jigubangbang.quest_service.model.AdminQuestUserDto;
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestDto;
 
 @Mapper
 public interface AdminQuestMapper {
+    //조회
+    void updateQuestStatus();
+    List<AdminQuestDto> selectQuestList(Map<String, Object> params);
+    int selectQuestCount(Map<String, Object> params);
+
+    //quest detail 조회
+    AdminQuestDetailDto selectQuestDetail(@Param("quest_id") int quest_id);
+    int selectQuestCompletedCount(@Param("quest_id") int quest_id);
+    int selectQuestInProgressCount(@Param("quest_id") int quest_id);
+    int selectQuestGivenUpCount(@Param("quest_id") int quest_id);
+    List<AdminQuestUserDto> selectQuestUsers(Map<String, Object> params);
+    int selectQuestUsersCount(@Param("quest_id") int quest_id);
+    List<String> selectQuestUserImages(@Param("quest_user_id") int quest_user_id);
+ 
     public void createQuest(QuestDto quest);
     public int updateQuest(Map<String, Object> params);
     public void deleteQuest(int quest_id);

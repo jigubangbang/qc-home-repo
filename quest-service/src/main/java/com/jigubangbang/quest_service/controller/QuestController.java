@@ -38,16 +38,6 @@ public class QuestController {
         return ResponseEntity.ok(result);
     }
 
-    // //#NeedToChange
-    // @GetMapping("/{quest_id}")
-    // public ResponseEntity<QuestDto> getQuestDetail(@PathVariable("quest_id") int quest_id) {
-    //     QuestDto quest = questService.getQuestById(quest_id);
-    //     if (quest == null) {
-    //         return ResponseEntity.notFound().build();
-    //     }
-    //     return ResponseEntity.ok(quest);
-    // }
-
     //quest 조회
     @GetMapping("/detail/{quest_id}")
     public ResponseEntity<QuestPublicModalDto> getQuestPublicDetail(@PathVariable("quest_id") int quest_id) {
