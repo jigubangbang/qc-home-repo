@@ -28,16 +28,16 @@ public class AdminBadgeController {
         return ResponseEntity.ok(result);
     }
 
-    @GetMapping("/badges/{badge_id}")
-    public ResponseEntity<BadgeDto> getAdminBadgeDetail(
-        @PathVariable("badge_id") int badge_id
-    ){
-        BadgeDto badge = badgeService.getBadgeById(badge_id);
-        if(badge == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(badge);
-    }
+    // @GetMapping("/badges/{badge_id}")
+    // public ResponseEntity<BadgeDto> getAdminBadgeDetail(
+    //     @PathVariable("badge_id") int badge_id
+    // ){
+    //     BadgeDto badge = badgeService.getBadgeById(badge_id);
+    //     if(badge == null){
+    //         return ResponseEntity.notFound().build();
+    //     }
+    //     return ResponseEntity.ok(badge);
+    // }
 
     @PostMapping("/badges")
     public ResponseEntity<Map<String, Object>> createBadge(@RequestBody BadgeDto badge){

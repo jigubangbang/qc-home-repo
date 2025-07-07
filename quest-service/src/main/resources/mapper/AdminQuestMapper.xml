@@ -121,6 +121,25 @@
           AND status = 'GIVEN_UP'
     </select>
 
+    <select id="selectQuestBadges" parameterType="int" resultType="com.jigubangbang.quest_service.model.SimpleBadgeDto">
+        SELECT 
+            bq.id,
+            bq.badge_id,
+            bq.quest_id,
+            b.kor_title,
+            b.eng_title,
+            b.icon
+        FROM badge_quest bq
+        JOIN badge b ON b.id = bq.badge_id
+        WHERE bq.quest_id = #{quest_id}
+        ORDER BY bq.badge_id ASC
+    </select>
+
+    <select id="selectQuestBadgesCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM badge_quest 
+        WHERE quest_id = #{quest_id}
+    </select>
 
     <select id="selectQuestUsers" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestUserDto">
         SELECT 
@@ -261,12 +280,21 @@
         ORDER BY id ASC
     </select>
 
-
     <update id="updateQuestUserReject" parameterType="int">
         UPDATE quest_user 
-        SET status = 'IN_PROGRESS', completed_at = null
+        SET status = 'IN_PROGRESS', completed_at = null, description = null
         WHERE id = #{quest_user_id}
     </update>
+
+    <select id="getQuestUserStatus" parameterType="int" resultType="string">
+        SELECT status 
+        FROM quest_user 
+        WHERE id = #{quest_user_id}
+    </select>
+
+    <delete id="deleteQuestImage" parameterType="int">
+        DELETE FROM quest_image WHERE quest_user_id = #{quest_user_id}
+    </delete>
 
     <update id="updateUserXp" parameterType="map">
         UPDATE user 

@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.quest_service.model.AdminQuestDetailDto;
-import com.jigubangbang.quest_service.model.AdminQuestDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.service.AdminQuestService;
 
@@ -47,6 +46,7 @@ public class AdminQuestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
 
     @GetMapping("/detail/{quest_id}")
     public ResponseEntity<Map<String, Object>> getQuestDetail(@PathVariable int quest_id) {
@@ -89,6 +89,29 @@ public class AdminQuestController {
         }
     }
 
+    @GetMapping("/detail/{quest_id}/badges")
+    public ResponseEntity<Map<String, Object>> getQuestBadges(
+            @PathVariable int quest_id) {
+        
+        try {
+            Map<String, Object> result = adminQuestService.getQuestBadges(quest_id);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "퀘스트 뱃지 목록을 불러오는 중 오류가 발생했습니다.");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    // @GetMapping("/badge-list")
+
+    // @GetMapping("/badge-detail/{badge_id}")
+
+    // @GetMapping("/badge-detail/{badge_id}/users")
+
+    // @GetMapping("/badge-detail/{badge_id}/quests")
+    
     
     //퀘스트 생성
     @PostMapping("/quest")
@@ -123,12 +146,17 @@ public class AdminQuestController {
 
     //퀘스트 인증 상세 조회
     
-    //reject -> 삭제로
     @PutMapping("/quests-certi/{quest_user_id}/reject")
-    public ResponseEntity<Map<String, Object>> rejectQuest(@PathVariable int quest_user_id){
+    public ResponseEntity<Map<String, Object>> rejectQuest(
+        @PathVariable int quest_user_id,
+        @RequestBody Map<String, Object> requestBody
+    ){
+        
         Map<String, Object> response = new HashMap<>();
         
-        adminQuestService.rejectQuest(quest_user_id);
+        int xp = (Integer) requestBody.get("xp");
+        String user_id = (String) requestBody.get("user_id");
+        adminQuestService.rejectQuest(quest_user_id, xp, user_id);
         response.put("success", true);
         response.put("message", "퀘스트 인증 취소 완료");
         return ResponseEntity.ok(response);
