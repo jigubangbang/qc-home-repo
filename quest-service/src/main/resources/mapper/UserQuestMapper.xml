@@ -17,7 +17,10 @@
             q.is_seasonal,
             q.season_start,
             q.season_end,
-            q.status,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS status,
             
             u.user_id,
             u.nickname,
@@ -152,7 +155,11 @@
                                         LIMIT 1)
                     )
                 ), 0
-            )) AS progress
+            )) AS progress,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS quest_status
         FROM quest_user qu
         JOIN quest q ON qu.quest_id = q.id
         WHERE qu.user_id = #{user_id}
@@ -242,7 +249,10 @@
         q.is_seasonal,
         q.season_start,
         q.season_end,
-        q.status,
+        CASE 
+            WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+            ELSE q.status 
+        END AS status,
         q.created_at,
         
         (SELECT b.icon 
@@ -329,4 +339,8 @@
             </if>
         </where>
     </select>
+
+    <delete id="seasonEndQuest" parameterType="int">
+        DELETE FROM quest_user where id = #{quest_user_id}
+    </delete>
 </mapper>

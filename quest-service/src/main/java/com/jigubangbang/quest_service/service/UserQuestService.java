@@ -214,4 +214,8 @@ public class UserQuestService {
         result.put("currentPage", pageNum);
         return result;
     }
+
+    public void seasonEndQuest(int quest_user_id){
+        userQuestMapper.seasonEndQuest(quest_user_id);
+    }
 }

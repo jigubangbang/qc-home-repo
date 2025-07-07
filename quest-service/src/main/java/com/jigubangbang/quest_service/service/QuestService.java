@@ -9,11 +9,13 @@ import org.springframework.stereotype.Service;
 
 import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestCategoryDto;
+import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestDetailDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestParticipantDto;
 import com.jigubangbang.quest_service.model.QuestPublicModalDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
+import com.jigubangbang.quest_service.model.SimpleUserDto;
 import com.jigubangbang.quest_service.model.UserBadgeDto;
 import com.jigubangbang.quest_service.repository.BadgeMapper;
 import com.jigubangbang.quest_service.repository.QuestMapper;
@@ -140,5 +142,26 @@ public class QuestService {
         result.put("badge", badgeInfo);
         
         return result;
+    }
+
+    public QuestCerti getQuestCerti(int quest_user_id){
+        QuestCerti questCerti = questMapper.getQuestCerti(quest_user_id);
+        if (questCerti != null){
+            List<String> images = questMapper.getQuestCertiImages(quest_user_id);
+            questCerti.setImage_list(images);
+        }
+        return questCerti;
+    }
+
+    public List<SimpleUserDto> getUserGraph(){
+        return questMapper.getUserGraph();
+    }
+
+    public int getUserRank(String user_id){
+        return questMapper.getUserRank(user_id);
+    }
+
+    public int getCountUser(){
+        return questMapper.getCountUser();
     }
 }

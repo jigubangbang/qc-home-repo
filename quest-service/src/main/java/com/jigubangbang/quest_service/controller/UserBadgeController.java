@@ -23,18 +23,6 @@ public class UserBadgeController {
     @Autowired
     private BadgeService badgeService;
 
-    //#NeedToChange 이거 쓸까?
-    // @GetMapping("/badges/{badge_id}")
-    // public ResponseEntity<BadgeDto> getBadgeDetail(
-    //     @PathVariable("badge_id") int badge_id
-    // ){
-    //     BadgeDto badge = badgeService.getBadgeById(badge_id);
-    //     if (badge == null){
-    //         return ResponseEntity.notFound().build();
-    //     }
-    //     return ResponseEntity.ok(badge);
-    // }
-
     @GetMapping("/badges/{badge_id}")
     public ResponseEntity<BadgeModalDto> getBadgeModal(
         @PathVariable("badge_id") int badge_id

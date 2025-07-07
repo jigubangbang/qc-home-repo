@@ -121,7 +121,7 @@
 
     <update id="updateQuestUserReject" parameterType="int">
         UPDATE quest_user 
-        SET status = 'IN_PROGRESS'
+        SET status = 'IN_PROGRESS', completed_at = null
         WHERE id = #{quest_user_id}
     </update>
 

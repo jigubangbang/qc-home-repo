@@ -24,4 +24,6 @@ public class QuestUserDto {
     private String icon;
     private String badge;
     private int progress;
+    
+    private String quest_status;
 }

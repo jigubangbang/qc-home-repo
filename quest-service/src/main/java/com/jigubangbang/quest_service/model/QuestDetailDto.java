@@ -27,4 +27,5 @@ public class QuestDetailDto {
     private Boolean is_seasonal;
     private Timestamp season_start;
     private Timestamp season_end;
+    private String quest_status;
 }

@@ -83,7 +83,23 @@ public class UserQuestController {
             return ResponseEntity.ok(response);
         }
 
+
         userQuestService.challengeQuest(user_id, quest_id);
+        response.put("success", true);
+        response.put("message", "퀘스트 도전 완료");
+        return ResponseEntity.ok(response);
+    }
+
+    //퀘스트 도전
+    @PostMapping("/{quest_user_id}/season-end")
+    public ResponseEntity<Map<String, Object>> seasonEndQuest(
+        HttpServletRequest request,
+        @PathVariable("quest_user_id") int quest_user_id
+    ){
+        //#NeedToChange
+        //session에서 user id 받아오기
+        Map<String, Object> response = new HashMap<>();
+        userQuestService.seasonEndQuest(quest_user_id);
         response.put("success", true);
         response.put("message", "퀘스트 도전 완료");
         return ResponseEntity.ok(response);
@@ -156,7 +172,7 @@ public class UserQuestController {
     }
 
     //퀘스트 인증 조회
-    @GetMapping("/certi/{quest_user_id}")
+    @GetMapping("/certificate/{quest_user_id}")
     public ResponseEntity<QuestCerti> getQuestCerti(
         @PathVariable("quest_user_id") int quest_user_id
     ){

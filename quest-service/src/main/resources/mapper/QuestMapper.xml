@@ -16,7 +16,10 @@
             q.is_seasonal,
             q.season_start,
             q.season_end,
-            q.status,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS status,
             q.created_at,
             
             (SELECT b.icon 
@@ -146,7 +149,10 @@
                 q.is_seasonal,
                 q.season_start,
                 q.season_end,
-                q.status,
+                CASE 
+                    WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                    ELSE q.status 
+                END AS status,
                 q.created_at,
                 
                 (SELECT 
@@ -183,7 +189,10 @@
             q.is_seasonal,
             q.season_start,
             q.season_end,
-            q.status,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS status,
 
             (SELECT COUNT(*) FROM quest_user qu_prog WHERE qu_prog.quest_id = q.id AND qu_prog.status = 'IN_PROGRESS') as count_in_progress,
             (SELECT COUNT(*) FROM quest_user qu_comp WHERE qu_comp.quest_id = q.id AND qu_comp.status = 'COMPLETED') as count_completed
@@ -259,7 +268,11 @@
             q.category,
             q.is_seasonal,
             q.season_start,
-            q.season_end
+            q.season_end,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS quest_status
         FROM quest_user qu
         INNER JOIN quest q ON qu.quest_id = q.id
         WHERE qu.user_id = #{userId} 
@@ -284,7 +297,11 @@
             q.category,
             q.is_seasonal,
             q.season_start,
-            q.season_end
+            q.season_end,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS quest_status
         FROM quest_user qu
         INNER JOIN quest q ON qu.quest_id = q.id
         WHERE qu.user_id = #{userId} 
@@ -363,5 +380,51 @@
              FROM badge_user ub 
              WHERE ub.user_id = #{userId} 
              AND ub.awarded_at IS NOT NULL) as awarded
+    </select>
+
+    <select id="getQuestCerti" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestCerti">
+        SELECT
+            qu.id,
+            qu.user_id as user_id,
+            qu.quest_id as quest_id,
+            qu.status,
+            qu.description,
+            qu.started_at as started_at,
+            qu.completed_at as completed_at,
+            qu.given_up_at as given_up_at,
+            
+            q.title,
+            q.difficulty,
+            q.description as quest_description,
+            q.xp
+        FROM quest_user qu
+        JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.id = #{quest_user_id}
+    </select>
+
+    <select id="getQuestCertiImages" parameterType="int" resultType="String">
+        SELECT image
+        FROM quest_image
+        WHERE quest_user_id = #{quest_user_id}
+    </select>
+
+    <select id="getUserGraph" resultType="com.jigubangbang.quest_service.model.SimpleUserDto">
+        SELECT user_id, xp, level
+        from user
+    </select>
+
+    <select id="getUserRank" parameterType="String" resultType="int">
+        SELECT ranking
+        FROM (
+            SELECT user_id,
+                RANK() OVER (ORDER BY xp DESC) AS ranking
+            FROM user
+        ) ranked
+        WHERE user_id = #{user_id}
+    </select>
+
+    <select id="getCountUser" resultType="int">
+        SELECT COUNT(*)
+        from user
     </select>
 </mapper>

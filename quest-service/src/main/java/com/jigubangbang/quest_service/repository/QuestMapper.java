@@ -7,11 +7,13 @@ import org.apache.ibatis.annotations.Mapper;
 
 import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestCategoryDto;
+import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestDetailDto;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestParticipantDto;
 import com.jigubangbang.quest_service.model.QuestPublicModalDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
+import com.jigubangbang.quest_service.model.SimpleUserDto;
 
 @Mapper
 public interface QuestMapper {
@@ -37,4 +39,11 @@ public interface QuestMapper {
     int getTotalQuestCount();
     BadgeDto getUserPinnedBadge(String userId);
     Map<String, Integer> getUserBadgeCounts(String userId);
+
+    public QuestCerti getQuestCerti(int quest_user_id);
+    public List<String> getQuestCertiImages(int quest_user_id);
+
+    public List<SimpleUserDto> getUserGraph();
+    public int getUserRank(String user_id);
+    public int getCountUser();
 }

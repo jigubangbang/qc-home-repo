@@ -39,4 +39,6 @@ public interface UserQuestMapper {
 
     List<QuestDto> getUserQuests(Map<String, Object> params);
     int countUserQuests(Map<String, Object> params);
+
+    void seasonEndQuest(int quest_user_id);
 }
