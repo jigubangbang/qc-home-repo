@@ -16,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.jigubangbang.quest_service.chat_service.NotificationServiceClient;
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestModalDto;
 import com.jigubangbang.quest_service.model.QuestUserDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
+import com.jigubangbang.quest_service.model.chat_service.BadgeNotificationRequestDto;
 import com.jigubangbang.quest_service.service.S3Service;
 import com.jigubangbang.quest_service.service.UserQuestService;
 
@@ -31,6 +33,9 @@ import jakarta.servlet.http.HttpServletRequest;
 public class UserQuestController {
     @Autowired
     private UserQuestService userQuestService;
+
+    @Autowired
+    private NotificationServiceClient notificationClient;
 
     @Resource
     private S3Service s3Service;
@@ -207,10 +212,47 @@ public class UserQuestController {
         @PathVariable("quest_user_id") int quest_user_id,
         @RequestBody QuestCerti completeRequest)
     {
-        Map<String, Object> response = userQuestService.completeQuest(quest_user_id, completeRequest);
-        return ResponseEntity.ok(response);    
+        try {
+            Map<String, Object> response = userQuestService.completeQuest(quest_user_id, completeRequest);
+            
+            // 예시 (테스트용 하드코딩) =================================================
+            if (response.get("success") != null && (Boolean) response.get("success")) {
+                    BadgeNotificationRequestDto request = BadgeNotificationRequestDto.builder()
+                        .userId(String.valueOf(quest_user_id))
+                        .badgeName("지하탐험가")
+                        .message(null)
+                        .badgeId(24)
+                        .relatedUrl("/quests/badges/24")
+                        .senderId("SYSTEM") // 시스템
+                        .senderProfileImage(null)
+                        .build();
+                    try {
+                        ResponseEntity<Map<String, Object>> notificationResponse = notificationClient.createBadgeEarnedNotification(request);
+                        System.out.println("[UserQuestController] 뱃지 알림 발송 성공: " + notificationResponse.getBody());
+                        
+                        // 알림 발송 성공 정보를 응답에 추가
+                        response.put("notificationSent", true);
+                        response.put("badgeName", "테스트 뱃지");
+                        
+                    } catch (Exception notificationError) {
+                        System.out.println("[UserQuestController] 뱃지 알림 발송 실패: " + notificationError.getMessage());
+                        
+                        // 알림 실패해도 퀘스트 완료는 성공으로 처리
+                        response.put("notificationSent", false);
+                        response.put("notificationError", notificationError.getMessage());
+                    }
+                // ====================================================================
+                
+                }
+            return ResponseEntity.ok(response);    
+        } catch (Exception e) {
+            System.out.println("[UserQuestController] 퀘스트 완료 처리 실패: " + e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                "success", false,
+                "message", "퀘스트 완료 처리에 실패했습니다: " + e.getMessage()
+            ));
+        }
     }
-
 
     //퀘스트 포기
     @PostMapping("/{quest_user_id}/abandon")
