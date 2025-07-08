@@ -149,9 +149,9 @@
         VALUES (#{user_id}, #{badge_id}, #{awarded_at}, #{is_displayed}, #{pinned_at})
     </insert>
 
-    <select id="getAdminBadgeList" parameterType="map" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+    <select id="getAdminBadgeList" resultType="com.jigubangbang.quest_service.model.AdminBadgeDto">
         SELECT 
-            id, 
+            id as badge_id,
             kor_title, 
             eng_title, 
             description, 
@@ -159,13 +159,50 @@
             created_at, 
             difficulty
         FROM badge
-        ORDER BY created_at DESC
+        ORDER BY id ASC
     </select>
 
-    <insert id="createBadge" parameterType="com.jigubangbang.quest_service.model.BadgeDto" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO badge (kor_title, eng_title, description, icon, created_at, difficulty)
-        VALUES (#{kor_title}, #{eng_title}, #{description}, #{icon}, #{created_at}, #{difficulty})
-    </insert>
+
+    <select id="existsBadgeById" parameterType="int" resultType="boolean">
+        SELECT 
+            CASE WHEN COUNT(*) &gt; 0 THEN TRUE ELSE FALSE END
+        FROM badge 
+        WHERE id = #{badgeId}
+    </select>
+
+    <select id="findNextAvailableId" resultType="Integer">
+        SELECT 
+            CASE 
+                WHEN NOT EXISTS (SELECT 1 FROM badge WHERE id = 1) THEN 1
+                ELSE (
+                    SELECT MIN(t1.id + 1) as next_id
+                    FROM badge t1
+                    LEFT JOIN badge t2 ON t1.id + 1 = t2.id
+                    WHERE t2.id IS NULL
+                )
+            END as next_id
+    </select>
+
+    <select id="existsQuestById" parameterType="int" resultType="boolean">
+        SELECT 
+            CASE WHEN COUNT(*) &gt; 0 THEN TRUE ELSE FALSE END
+        FROM quest 
+        WHERE id = #{questId}
+    </select>
+
+    <select id="findNextAvailableQuestId" resultType="Integer">
+        SELECT 
+            CASE 
+                WHEN NOT EXISTS (SELECT 1 FROM quest WHERE id = 1) THEN 1
+                ELSE (
+                    SELECT MIN(t1.id + 1) as next_id
+                    FROM quest t1
+                    LEFT JOIN quest t2 ON t1.id + 1 = t2.id
+                    WHERE t2.id IS NULL
+                )
+            END as next_id
+    </select>
+
 
     <update id="updateBadge" parameterType="com.jigubangbang.quest_service.model.BadgeDto">
         UPDATE badge 
@@ -181,8 +218,17 @@
         DELETE FROM badge WHERE id = #{badge_id}
     </delete>
 
+    <delete id="deleteBadgeQuest" parameterType="int">
+        DELETE FROM badge_quest 
+        WHERE badge_id = #{badge_id}
+    </delete>
     
-    <!-- 뱃지 모달 -->
+    <delete id="deleteBadgeUser" parameterType="int">
+        DELETE FROM badge_user 
+        WHERE badge_id = #{badge_id}
+    </delete>
+
+
     <select id="getBadgeModalBase" parameterType="map" resultType="com.jigubangbang.quest_service.model.BadgeModalDto">
         SELECT 
             b.id,
@@ -254,5 +300,117 @@
         ORDER BY bu.awarded_at DESC
     </select>
 
+    <select id="getQuestsByBadgeId" parameterType="int" resultType="com.jigubangbang.quest_service.model.AdminQuestDetailDto">
+        SELECT 
+            q.id as quest_id,
+            q.type,
+            qc.subtitle as category,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            q.status,
+            q.created_at,
+            q.description,
+            COALESCE(qu_progress.count_in_progress, 0) as count_in_progress,
+            COALESCE(qu_completed.count_completed, 0) as count_completed
+        FROM badge_quest bq
+        JOIN quest q ON bq.quest_id = q.id
+        LEFT JOIN quest_category qc ON q.category = qc.id
+        LEFT JOIN (
+            SELECT quest_id, COUNT(*) as count_in_progress
+            FROM quest_user 
+            WHERE status = 'IN_PROGRESS'
+            GROUP BY quest_id
+        ) qu_progress ON q.id = qu_progress.quest_id
+        LEFT JOIN (
+            SELECT quest_id, COUNT(*) as count_completed
+            FROM quest_user 
+            WHERE status = 'COMPLETED'
+            GROUP BY quest_id
+        ) qu_completed ON q.id = qu_completed.quest_id
+        WHERE bq.badge_id = #{badge_id}
+        ORDER BY q.id ASC
+    </select>
 
+    <select id="getAwardedUsers" parameterType="int" resultType="map">
+        SELECT 
+            bu.user_id,
+            u.nickname,
+            u.profile_image,
+            bu.awarded_at
+        FROM badge_user bu
+        JOIN user u ON bu.user_id = u.user_id
+        WHERE bu.badge_id = #{badge_id}
+        ORDER BY bu.awarded_at DESC
+    </select>
+
+    <select id="badgeExists" parameterType="int" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM badge
+        WHERE id = #{badge_id}
+    </select>
+    
+    <select id="questExists" parameterType="int" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM quest
+        WHERE id = #{quest_id}
+    </select>
+    
+    <update id="updateBadgeInfo">
+        UPDATE badge
+        SET 
+            kor_title = #{request.kor_title},
+            eng_title = #{request.eng_title},
+            description = #{request.description}
+            <if test="request.icon_url != null and request.icon_url != ''">
+                , icon = #{request.icon_url}
+            </if>
+        WHERE id = #{badge_id}
+    </update>
+    
+    <delete id="deleteBadgeQuestConnections" parameterType="int">
+        DELETE FROM badge_quest
+        WHERE badge_id = #{badge_id}
+    </delete>
+
+    <insert id="insertBadgeQuestConnection">
+        INSERT INTO badge_quest (badge_id, quest_id)
+        VALUES (#{badge_id}, #{quest_id})
+        ON DUPLICATE KEY UPDATE 
+        badge_id = VALUES(badge_id),
+        quest_id = VALUES(quest_id)
+    </insert>
+
+    <insert id="insertBadge" parameterType="com.jigubangbang.quest_service.model.BadgeCreateRequest">
+        INSERT INTO badge (
+            id,
+            kor_title,
+            eng_title,
+            description,
+            icon,
+            difficulty,
+            created_at
+        ) VALUES (
+            #{id},
+            #{kor_title},
+            #{eng_title},
+            #{description},
+            #{icon},
+            #{difficulty},
+            NOW()
+        )
+    </insert>
+
+    <insert id="insertBadgeQuest">
+        INSERT INTO badge_quest (
+            badge_id,
+            quest_id
+        ) VALUES (
+            #{badgeId},
+            #{questId}
+        )
+    </insert>
 </mapper>

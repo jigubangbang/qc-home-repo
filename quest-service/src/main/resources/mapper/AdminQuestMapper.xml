@@ -57,7 +57,7 @@
                 ORDER BY q.created_at DESC
             </when>
             <otherwise>
-                ORDER BY q.created_at ASC
+                ORDER BY q.id ASC
             </otherwise>
         </choose>
         LIMIT #{limit} OFFSET #{offset}
@@ -294,6 +294,10 @@
 
     <delete id="deleteQuestImage" parameterType="int">
         DELETE FROM quest_image WHERE quest_user_id = #{quest_user_id}
+    </delete>
+
+    <delete id="deleteBadgeUser" parameterType="map">
+        DELETE FROM badge_user WHERE badge_id = #{badge_id} and user_id=#{user_id}
     </delete>
 
     <update id="updateUserXp" parameterType="map">

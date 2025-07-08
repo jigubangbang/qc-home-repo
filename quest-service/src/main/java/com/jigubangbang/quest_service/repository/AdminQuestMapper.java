@@ -50,17 +50,14 @@ public interface AdminQuestMapper {
     public void deleteQuestImage(int quest_user_id);
     public void updateUserXp(Map<String, Object> params);
     public void updateUserLevel(String user_id);
+    public int deleteBadgeUser(Map<String, Object> params);
 
 
-    //badge 지급
+    //badge 지급 (user로 옮겼음)
     public List<Integer> getBadgeIdsByQuestId(int quest_id);
-    
     public List<Integer> getRequiredQuestsByBadgeId(int badge_id);
-
     public List<Integer> getCompletedQuestsByUserAndBadge(String user_id, int badge_id);
-
     public int checkUserHasBadge(String user_id, int badge_id);
-
     public void insertUserBadge(Map<String, Object> params);
 }
 

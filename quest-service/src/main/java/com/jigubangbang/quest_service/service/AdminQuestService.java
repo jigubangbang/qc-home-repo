@@ -186,7 +186,7 @@ public class AdminQuestService {
 
 
     @Transactional
-    public void rejectQuest(int quest_user_id, int xp, String user_id) {
+    public void rejectQuest(int quest_user_id, int quest_id, int xp, String user_id) {
         String currentStatus = adminQuestMapper.getQuestUserStatus(quest_user_id);
         if (!"COMPLETED".equals(currentStatus)) {
             throw new IllegalStateException("완료된 퀘스트만 취소할 수 있습니다");
@@ -195,7 +195,29 @@ public class AdminQuestService {
         try {
             adminQuestMapper.updateQuestUserReject(quest_user_id);
             adminQuestMapper.deleteQuestImage(quest_user_id);
-            
+
+            List<Integer> relatedBadgeIds = adminQuestMapper.getBadgeIdsByQuestId(quest_id);
+
+            for (int badge_id : relatedBadgeIds){
+                boolean alreadyHasBadge = false;
+
+                if (adminQuestMapper.checkUserHasBadge(user_id, badge_id)>0){
+                    alreadyHasBadge = true;
+                }
+
+                if(alreadyHasBadge){
+                    Map<String, Object> params2 = new HashMap<>();
+                    params2.put("badge_id", badge_id);
+                    params2.put("user_id", user_id);
+                    int isBadgeRemoved = adminQuestMapper.deleteBadgeUser(params2);
+
+                    if(isBadgeRemoved > 0){
+                        System.out.println("뱃지 없어짐1!!!");
+                        //#NeedToChange 여기서 뱃지 뺏긴 알림이 오는 거임
+                    }
+                }
+            }
+ 
             Map<String, Object> params = new HashMap<>();
             params.put("xp", -xp);
             params.put("user_id", user_id);

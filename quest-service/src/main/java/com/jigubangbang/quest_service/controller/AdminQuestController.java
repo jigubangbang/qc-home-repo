@@ -104,13 +104,6 @@ public class AdminQuestController {
         }
     }
 
-    // @GetMapping("/badge-list")
-
-    // @GetMapping("/badge-detail/{badge_id}")
-
-    // @GetMapping("/badge-detail/{badge_id}/users")
-
-    // @GetMapping("/badge-detail/{badge_id}/quests")
     
     
     //퀘스트 생성
@@ -156,7 +149,8 @@ public class AdminQuestController {
         
         int xp = (Integer) requestBody.get("xp");
         String user_id = (String) requestBody.get("user_id");
-        adminQuestService.rejectQuest(quest_user_id, xp, user_id);
+        int quest_id = (Integer) requestBody.get("quest_id");
+        adminQuestService.rejectQuest(quest_user_id, quest_id, xp, user_id);
         response.put("success", true);
         response.put("message", "퀘스트 인증 취소 완료");
         return ResponseEntity.ok(response);
