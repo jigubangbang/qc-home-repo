@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.quest_service.model.AdminQuestDetailDto;
+import com.jigubangbang.quest_service.model.BadgeIdCheckResponse;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.service.AdminQuestService;
 
@@ -104,24 +105,36 @@ public class AdminQuestController {
         }
     }
 
-    
+    @GetMapping("/quests/check-quest-id/{questId}")
+    public ResponseEntity<BadgeIdCheckResponse> checkQuestIdAvailability(@PathVariable int questId) {
+        try {
+            BadgeIdCheckResponse response = adminQuestService.checkBadgeIdAvailability(questId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            BadgeIdCheckResponse errorResponse = new BadgeIdCheckResponse();
+            errorResponse.setAvailable(false);
+            errorResponse.setSuggestedId(null);
+            errorResponse.setMessage("ID 확인 중 오류가 발생했습니다.");
+            return ResponseEntity.ok(errorResponse);
+        }
+    }
     
     //퀘스트 생성
-    @PostMapping("/quest")
+    @PostMapping("/quests")
     public ResponseEntity<QuestDto> createQuest(@RequestBody QuestDto quest){
         QuestDto createdQuest = adminQuestService.createQuest(quest);
         return ResponseEntity.ok(createdQuest);
     }
     
     //퀘스트 수정
-    @PutMapping("/quest/{quest_id}")
+    @PutMapping("/quests/{quest_id}")
     public ResponseEntity<QuestDto> updateQuest(@PathVariable int quest_id, @RequestBody QuestDto quest){
         QuestDto updatedQuest = adminQuestService.updateQuest(quest_id, quest);
         return ResponseEntity.ok(updatedQuest);
     }
 
     //퀘스트 삭제
-    @DeleteMapping("/quest/{quest_id}")
+    @DeleteMapping("/quests/{quest_id}")
     public ResponseEntity<Void> deleteQuest(@PathVariable int quest_id){
         adminQuestService.deleteQuest(quest_id);
         return ResponseEntity.noContent().build();

@@ -68,6 +68,8 @@ public class UserQuestService {
         questUser.setQuest_id(quest_id);
         questUser.setStatus("IN_PROGRESS");
         questUser.setStarted_at(new Timestamp(System.currentTimeMillis()));
+
+        System.out.println(questUser.getUser_id());
         userQuestMapper.insertQuestUser(questUser);
     }
 

@@ -43,7 +43,6 @@ public interface AdminQuestMapper {
     public QuestCerti getQuestCerti(int quest_user_id);
     public List<String> getQuestCertiImageList(int quest_user_id);
 
-    //public int updateQuestUserApprove(int quest_user_id);
     public int updateQuestUserReject(int quest_user_id);
     public String getQuestUserStatus(int quest_user_id);
 
@@ -59,5 +58,15 @@ public interface AdminQuestMapper {
     public List<Integer> getCompletedQuestsByUserAndBadge(String user_id, int badge_id);
     public int checkUserHasBadge(String user_id, int badge_id);
     public void insertUserBadge(Map<String, Object> params);
+
+    //생성
+    boolean existsQuestById(@Param("questId") int questId);
+    Integer findNextAvailableId();
+
+    //삭제
+    boolean existsQuest(int quest_id);
+    List<Integer> getQuestUserIds(int quest_id);
+    int deleteQuestUser(int quest_user_id);
+    int deleteBadgeQuest(int quest_id);
 }
 

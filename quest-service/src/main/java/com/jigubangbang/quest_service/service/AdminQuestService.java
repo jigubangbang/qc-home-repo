@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.jigubangbang.quest_service.model.AdminQuestDetailDto;
 import com.jigubangbang.quest_service.model.AdminQuestDto;
 import com.jigubangbang.quest_service.model.AdminQuestUserDto;
+import com.jigubangbang.quest_service.model.BadgeIdCheckResponse;
 import com.jigubangbang.quest_service.model.BadgeQuestDto;
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestDto;
@@ -122,10 +123,10 @@ public class AdminQuestService {
     public QuestDto updateQuest(int quest_id, QuestDto quest){
         Map<String, Object> params = new HashMap<>();
         params.put("quest_id", quest_id);
-        params.put("type", quest.getType());
         params.put("category", quest.getCategory());
         params.put("title", quest.getTitle());
         params.put("difficulty", quest.getDifficulty());
+        params.put("description", quest.getDescription());
         params.put("xp", quest.getXp());
         params.put("isSeasonal", quest.getIs_seasonal());
         params.put("seasonStart", quest.getSeason_start());
@@ -136,9 +137,24 @@ public class AdminQuestService {
         return quest;
     }
 
-    public void deleteQuest(int quest_id){
+    @Transactional
+    public void deleteQuest(int quest_id) {
+    try {
+        if (!adminQuestMapper.existsQuest(quest_id)) {
+            throw new IllegalArgumentException("존재하지 않는 퀘스트입니다: " + quest_id);
+        }
+        
+        List<Integer> questUserIds = adminQuestMapper.getQuestUserIds(quest_id);
+        for (Integer quest_user_id : questUserIds) {
+            adminQuestMapper.deleteQuestImage(quest_user_id);
+        }
+        adminQuestMapper.deleteQuestUser(quest_id);
+        adminQuestMapper.deleteBadgeQuest(quest_id);
         adminQuestMapper.deleteQuest(quest_id);
+    } catch (Exception e) {
+        throw new RuntimeException("퀘스트 삭제에 실패했습니다: " + e.getMessage());
     }
+}
 
     public Map<String, Object> getQuestCertiList(int pageNum, String sortOption, String status){
         //#NeedToChange
@@ -226,6 +242,47 @@ public class AdminQuestService {
             adminQuestMapper.updateUserLevel(user_id);
         } catch (Exception e) {
             throw new RuntimeException("퀘스트 인증 취소 중 오류 발생", e);
+        }
+    }
+
+    public BadgeIdCheckResponse checkBadgeIdAvailability(int questId) {
+        BadgeIdCheckResponse response = new BadgeIdCheckResponse();
+        
+        try {
+            // 해당 ID가 이미 존재하는지 확인
+            boolean exists = adminQuestMapper.existsQuestById(questId);
+            
+            if (!exists) {
+                // 사용 가능한 경우
+                response.setAvailable(true);
+                response.setSuggestedId(null);
+                response.setMessage("사용 가능한 ID입니다.");
+            } else {
+                // 사용 불가능한 경우, 추천 ID 찾기
+                Integer suggestedId = findNextAvailableId();
+                response.setAvailable(false);
+                response.setSuggestedId(suggestedId);
+                response.setMessage("이미 사용 중인 ID입니다.");
+            }
+            
+        } catch (Exception e) {
+            // 예외 발생 시 안전하게 사용 불가능으로 처리
+            response.setAvailable(false);
+            response.setSuggestedId(null);
+            response.setMessage("ID 확인 중 오류가 발생했습니다.");
+        }
+        
+        return response;
+    }
+
+    private Integer findNextAvailableId() {
+        try {
+            // 1부터 시작해서 사용 가능한 가장 작은 ID 찾기
+            Integer nextId = adminQuestMapper.findNextAvailableId();
+            return nextId != null ? nextId : 1; // null인 경우 1 반환
+        } catch (Exception e) {
+            // 에러 발생 시 null 반환
+            return null;
         }
     }
 }

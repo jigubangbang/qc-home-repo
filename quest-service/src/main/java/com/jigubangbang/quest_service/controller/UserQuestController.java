@@ -76,12 +76,12 @@ public class UserQuestController {
         String user_id = "aaa";
         Map<String, Object> response = new HashMap<>();
 
-        //중복 체크
-        if (userQuestService.countUserQuest(user_id, quest_id)>0){
-            response.put("success", false);
-            response.put("message", "이미 도전 중인 퀘스트입니다");
-            return ResponseEntity.ok(response);
-        }
+        // //중복 체크 given up 상태 때문에
+        // if (userQuestService.countUserQuest(user_id, quest_id)>0){
+        //     response.put("success", false);
+        //     response.put("message", "이미 도전 중인 퀘스트입니다");
+        //     return ResponseEntity.ok(response);
+        // }
 
 
         userQuestService.challengeQuest(user_id, quest_id);

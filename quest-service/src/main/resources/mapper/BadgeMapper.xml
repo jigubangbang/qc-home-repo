@@ -183,25 +183,7 @@
             END as next_id
     </select>
 
-    <select id="existsQuestById" parameterType="int" resultType="boolean">
-        SELECT 
-            CASE WHEN COUNT(*) &gt; 0 THEN TRUE ELSE FALSE END
-        FROM quest 
-        WHERE id = #{questId}
-    </select>
-
-    <select id="findNextAvailableQuestId" resultType="Integer">
-        SELECT 
-            CASE 
-                WHEN NOT EXISTS (SELECT 1 FROM quest WHERE id = 1) THEN 1
-                ELSE (
-                    SELECT MIN(t1.id + 1) as next_id
-                    FROM quest t1
-                    LEFT JOIN quest t2 ON t1.id + 1 = t2.id
-                    WHERE t2.id IS NULL
-                )
-            END as next_id
-    </select>
+    
 
 
     <update id="updateBadge" parameterType="com.jigubangbang.quest_service.model.BadgeDto">
