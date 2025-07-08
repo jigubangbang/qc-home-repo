@@ -4,9 +4,158 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.jigubangbang.quest_service.repository.AdminQuestMapper">
+
+    <update id="updateQuestStatus">
+        UPDATE quest 
+            SET status = 'INACTIVE'
+            WHERE season_end IS NOT NULL 
+            AND season_end &lt; NOW() 
+            AND status = 'ACTIVE';
+    </update>
+
+    <select id="selectQuestList" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestDto">
+        SELECT 
+            q.id as quest_id,
+            q.type,
+            qc.subtitle as category,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            q.status,
+            q.created_at
+        FROM quest q
+        LEFT JOIN quest_category qc ON q.category = qc.id
+        <where>
+            <if test="search != null and search != ''">
+                AND (
+                    q.title LIKE CONCAT('%', #{search}, '%')
+                    OR qc.subtitle LIKE CONCAT('%', #{search}, '%')
+                    OR q.type LIKE CONCAT('%', #{search}, '%')
+                )
+            </if>
+            <if test="status != null and status != 'all'">
+                AND q.status = #{status}
+            </if>
+        </where>
+        <choose>
+            <when test="sortOption == 'title'">
+                ORDER BY q.title ASC
+            </when>
+            <when test="sortOption == 'title_desc'">
+                ORDER BY q.title DESC
+            </when>
+            <when test="sortOption == 'xp'">
+                ORDER BY q.xp ASC
+            </when>
+            <when test="sortOption == 'xp_desc'">
+                ORDER BY q.xp DESC
+            </when>
+            <when test="sortOption == 'created_at_desc'">
+                ORDER BY q.created_at DESC
+            </when>
+            <otherwise>
+                ORDER BY q.created_at ASC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectQuestCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM quest q
+        LEFT JOIN quest_category qc ON q.category = qc.id
+        <where>
+            <if test="search != null and search != ''">
+                AND (
+                    q.title LIKE CONCAT('%', #{search}, '%')
+                    OR qc.subtitle LIKE CONCAT('%', #{search}, '%')
+                    OR q.type LIKE CONCAT('%', #{search}, '%')
+                )
+            </if>
+            <if test="status != null and status != 'all'">
+                AND q.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectQuestDetail" parameterType="int" resultType="com.jigubangbang.quest_service.model.AdminQuestDetailDto">
+        SELECT 
+            q.id as quest_id,
+            q.type,
+            qc.subtitle as category,
+            q.title,
+            q.description,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            q.status,
+            q.created_at
+        FROM quest q
+        LEFT JOIN quest_category qc ON q.category = qc.id
+        WHERE q.id = #{quest_id}
+    </select>
+
+    <select id="selectQuestCompletedCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id} 
+          AND status = 'COMPLETED'
+    </select>
+
+    <select id="selectQuestInProgressCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id} 
+          AND status = 'IN_PROGRESS'
+    </select>
+
+    <select id="selectQuestGivenUpCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id} 
+          AND status = 'GIVEN_UP'
+    </select>
+
+
+    <select id="selectQuestUsers" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestUserDto">
+        SELECT 
+            quest_id,
+            id as quest_user_id,
+            user_id,
+            description,
+            status,
+            started_at,
+            completed_at,
+            given_up_at
+        FROM quest_user 
+        WHERE quest_id = #{quest_id}
+        ORDER BY started_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="selectQuestUsersCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM quest_user 
+        WHERE quest_id = #{quest_id}
+    </select>
+
+    <select id="selectQuestUserImages" parameterType="int" resultType="string">
+        SELECT image
+        FROM quest_image 
+        WHERE quest_user_id = #{quest_user_id}
+        ORDER BY id ASC
+    </select>
+
+
+    <!-- 퀘스트 CURD -->
     <insert id="createQuest" parameterType="com.jigubangbang.quest_service.model.QuestDto">
-        INSERT INTO quest (type, category, title, difficulty, xp, is_seasonal, season_start, season_end, status, created_at)
-        VALUES (#{type}, #{category}, #{title}, #{difficulty}, #{xp}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
+        INSERT INTO quest (type, category, title, difficulty, xp, description, is_seasonal, season_start, season_end, status, created_at)
+        VALUES (#{type}, #{category}, #{title}, #{difficulty}, #{description}, #{xp}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
     </insert>
 
     <update id="updateQuest" parameterType="map">
@@ -112,124 +261,157 @@
         ORDER BY id ASC
     </select>
 
-    <update id="updateQuestUserApprove" parameterType="int">
-        UPDATE quest_user 
-        SET status = 'COMPLETED'
-        WHERE id = #{quest_user_id}
-    </update>
 
     <update id="updateQuestUserReject" parameterType="int">
         UPDATE quest_user 
-        SET status = 'IN_PROGRESS'
+        SET status = 'IN_PROGRESS', completed_at = null
         WHERE id = #{quest_user_id}
     </update>
 
     <update id="updateUserXp" parameterType="map">
         UPDATE user 
-        SET xp = xp + #{xp},
-            level = CASE 
-                WHEN (xp + #{xp}) &gt;= 29900 THEN 100
-                WHEN (xp + #{xp}) &gt;= 28900 THEN 99
-                WHEN (xp + #{xp}) &gt;= 28400 THEN 98
-                WHEN (xp + #{xp}) &gt;= 27900 THEN 97
-                WHEN (xp + #{xp}) &gt;= 27400 THEN 96
-                WHEN (xp + #{xp}) &gt;= 26900 THEN 95
-                WHEN (xp + #{xp}) &gt;= 26400 THEN 94
-                WHEN (xp + #{xp}) &gt;= 25900 THEN 93
-                WHEN (xp + #{xp}) &gt;= 25400 THEN 92
-                WHEN (xp + #{xp}) &gt;= 24900 THEN 91
-                WHEN (xp + #{xp}) &gt;= 24400 THEN 90
-                WHEN (xp + #{xp}) &gt;= 23900 THEN 89
-                WHEN (xp + #{xp}) &gt;= 23400 THEN 88
-                WHEN (xp + #{xp}) &gt;= 22900 THEN 87
-                WHEN (xp + #{xp}) &gt;= 22400 THEN 86
-                WHEN (xp + #{xp}) &gt;= 21900 THEN 85
-                WHEN (xp + #{xp}) &gt;= 21400 THEN 84
-                WHEN (xp + #{xp}) &gt;= 20900 THEN 83
-                WHEN (xp + #{xp}) &gt;= 20400 THEN 82
-                WHEN (xp + #{xp}) &gt;= 19900 THEN 81
-                WHEN (xp + #{xp}) &gt;= 19500 THEN 80
-                WHEN (xp + #{xp}) &gt;= 19100 THEN 79
-                WHEN (xp + #{xp}) &gt;= 18700 THEN 78
-                WHEN (xp + #{xp}) &gt;= 18300 THEN 77
-                WHEN (xp + #{xp}) &gt;= 17900 THEN 76
-                WHEN (xp + #{xp}) &gt;= 17500 THEN 75
-                WHEN (xp + #{xp}) &gt;= 17100 THEN 74
-                WHEN (xp + #{xp}) &gt;= 16700 THEN 73
-                WHEN (xp + #{xp}) &gt;= 16300 THEN 72
-                WHEN (xp + #{xp}) &gt;= 15900 THEN 71
-                WHEN (xp + #{xp}) &gt;= 15500 THEN 70
-                WHEN (xp + #{xp}) &gt;= 15100 THEN 69
-                WHEN (xp + #{xp}) &gt;= 14700 THEN 68
-                WHEN (xp + #{xp}) &gt;= 14300 THEN 67
-                WHEN (xp + #{xp}) &gt;= 13900 THEN 66
-                WHEN (xp + #{xp}) &gt;= 13500 THEN 65
-                WHEN (xp + #{xp}) &gt;= 13100 THEN 64
-                WHEN (xp + #{xp}) &gt;= 12700 THEN 63
-                WHEN (xp + #{xp}) &gt;= 12300 THEN 62
-                WHEN (xp + #{xp}) &gt;= 11900 THEN 61
-                WHEN (xp + #{xp}) &gt;= 11600 THEN 60
-                WHEN (xp + #{xp}) &gt;= 11300 THEN 59
-                WHEN (xp + #{xp}) &gt;= 11000 THEN 58
-                WHEN (xp + #{xp}) &gt;= 10700 THEN 57
-                WHEN (xp + #{xp}) &gt;= 10400 THEN 56
-                WHEN (xp + #{xp}) &gt;= 10100 THEN 55
-                WHEN (xp + #{xp}) &gt;= 9800 THEN 54
-                WHEN (xp + #{xp}) &gt;= 9500 THEN 53
-                WHEN (xp + #{xp}) &gt;= 9200 THEN 52
-                WHEN (xp + #{xp}) &gt;= 8900 THEN 51
-                WHEN (xp + #{xp}) &gt;= 8600 THEN 50
-                WHEN (xp + #{xp}) &gt;= 8300 THEN 49
-                WHEN (xp + #{xp}) &gt;= 8000 THEN 48
-                WHEN (xp + #{xp}) &gt;= 7700 THEN 47
-                WHEN (xp + #{xp}) &gt;= 7400 THEN 46
-                WHEN (xp + #{xp}) &gt;= 7100 THEN 45
-                WHEN (xp + #{xp}) &gt;= 6800 THEN 44
-                WHEN (xp + #{xp}) &gt;= 6500 THEN 43
-                WHEN (xp + #{xp}) &gt;= 6200 THEN 42
-                WHEN (xp + #{xp}) &gt;= 5900 THEN 41
-                WHEN (xp + #{xp}) &gt;= 5700 THEN 40
-                WHEN (xp + #{xp}) &gt;= 5500 THEN 39
-                WHEN (xp + #{xp}) &gt;= 5300 THEN 38
-                WHEN (xp + #{xp}) &gt;= 5100 THEN 37
-                WHEN (xp + #{xp}) &gt;= 4900 THEN 36
-                WHEN (xp + #{xp}) &gt;= 4700 THEN 35
-                WHEN (xp + #{xp}) &gt;= 4500 THEN 34
-                WHEN (xp + #{xp}) &gt;= 4300 THEN 33
-                WHEN (xp + #{xp}) &gt;= 4100 THEN 32
-                WHEN (xp + #{xp}) &gt;= 3900 THEN 31
-                WHEN (xp + #{xp}) &gt;= 3700 THEN 30
-                WHEN (xp + #{xp}) &gt;= 3500 THEN 29
-                WHEN (xp + #{xp}) &gt;= 3300 THEN 28
-                WHEN (xp + #{xp}) &gt;= 3100 THEN 27
-                WHEN (xp + #{xp}) &gt;= 2900 THEN 26
-                WHEN (xp + #{xp}) &gt;= 2700 THEN 25
-                WHEN (xp + #{xp}) &gt;= 2500 THEN 24
-                WHEN (xp + #{xp}) &gt;= 2300 THEN 23
-                WHEN (xp + #{xp}) &gt;= 2100 THEN 22
-                WHEN (xp + #{xp}) &gt;= 1900 THEN 21
-                WHEN (xp + #{xp}) &gt;= 1800 THEN 20
-                WHEN (xp + #{xp}) &gt;= 1700 THEN 19
-                WHEN (xp + #{xp}) &gt;= 1600 THEN 18
-                WHEN (xp + #{xp}) &gt;= 1500 THEN 17
-                WHEN (xp + #{xp}) &gt;= 1400 THEN 16
-                WHEN (xp + #{xp}) &gt;= 1300 THEN 15
-                WHEN (xp + #{xp}) &gt;= 1200 THEN 14
-                WHEN (xp + #{xp}) &gt;= 1100 THEN 13
-                WHEN (xp + #{xp}) &gt;= 1000 THEN 12
-                WHEN (xp + #{xp}) &gt;= 900 THEN 11
-                WHEN (xp + #{xp}) &gt;= 800 THEN 10
-                WHEN (xp + #{xp}) &gt;= 700 THEN 9
-                WHEN (xp + #{xp}) &gt;= 600 THEN 8
-                WHEN (xp + #{xp}) &gt;= 500 THEN 7
-                WHEN (xp + #{xp}) &gt;= 400 THEN 6
-                WHEN (xp + #{xp}) &gt;= 300 THEN 5
-                WHEN (xp + #{xp}) &gt;= 200 THEN 4
-                WHEN (xp + #{xp}) &gt;= 100 THEN 3
-                WHEN (xp + #{xp}) &gt;= 0 THEN 2
-                ELSE 1
-            END
+        SET xp = xp + #{xp}
         WHERE user_id = #{user_id}
     </update>
+
+    <update id="updateUserLevel" parameterType="string">
+    UPDATE user 
+    SET             level = CASE 
+                WHEN (xp) &gt;= 29900 THEN 100
+                WHEN (xp) &gt;= 28900 THEN 99
+                WHEN (xp) &gt;= 28400 THEN 98
+                WHEN (xp) &gt;= 27900 THEN 97
+                WHEN (xp) &gt;= 27400 THEN 96
+                WHEN (xp) &gt;= 26900 THEN 95
+                WHEN (xp) &gt;= 26400 THEN 94
+                WHEN (xp) &gt;= 25900 THEN 93
+                WHEN (xp) &gt;= 25400 THEN 92
+                WHEN (xp) &gt;= 24900 THEN 91
+                WHEN (xp) &gt;= 24400 THEN 90
+                WHEN (xp) &gt;= 23900 THEN 89
+                WHEN (xp) &gt;= 23400 THEN 88
+                WHEN (xp) &gt;= 22900 THEN 87
+                WHEN (xp) &gt;= 22400 THEN 86
+                WHEN (xp) &gt;= 21900 THEN 85
+                WHEN (xp) &gt;= 21400 THEN 84
+                WHEN (xp) &gt;= 20900 THEN 83
+                WHEN (xp) &gt;= 20400 THEN 82
+                WHEN (xp) &gt;= 19900 THEN 81
+                WHEN (xp) &gt;= 19500 THEN 80
+                WHEN (xp) &gt;= 19100 THEN 79
+                WHEN (xp) &gt;= 18700 THEN 78
+                WHEN (xp) &gt;= 18300 THEN 77
+                WHEN (xp) &gt;= 17900 THEN 76
+                WHEN (xp) &gt;= 17500 THEN 75
+                WHEN (xp) &gt;= 17100 THEN 74
+                WHEN (xp) &gt;= 16700 THEN 73
+                WHEN (xp) &gt;= 16300 THEN 72
+                WHEN (xp) &gt;= 15900 THEN 71
+                WHEN (xp) &gt;= 15500 THEN 70
+                WHEN (xp) &gt;= 15100 THEN 69
+                WHEN (xp) &gt;= 14700 THEN 68
+                WHEN (xp) &gt;= 14300 THEN 67
+                WHEN (xp) &gt;= 13900 THEN 66
+                WHEN (xp) &gt;= 13500 THEN 65
+                WHEN (xp) &gt;= 13100 THEN 64
+                WHEN (xp) &gt;= 12700 THEN 63
+                WHEN (xp) &gt;= 12300 THEN 62
+                WHEN (xp) &gt;= 11900 THEN 61
+                WHEN (xp) &gt;= 11600 THEN 60
+                WHEN (xp) &gt;= 11300 THEN 59
+                WHEN (xp) &gt;= 11000 THEN 58
+                WHEN (xp) &gt;= 10700 THEN 57
+                WHEN (xp) &gt;= 10400 THEN 56
+                WHEN (xp) &gt;= 10100 THEN 55
+                WHEN (xp) &gt;= 9800 THEN 54
+                WHEN (xp) &gt;= 9500 THEN 53
+                WHEN (xp) &gt;= 9200 THEN 52
+                WHEN (xp) &gt;= 8900 THEN 51
+                WHEN (xp) &gt;= 8600 THEN 50
+                WHEN (xp) &gt;= 8300 THEN 49
+                WHEN (xp) &gt;= 8000 THEN 48
+                WHEN (xp) &gt;= 7700 THEN 47
+                WHEN (xp) &gt;= 7400 THEN 46
+                WHEN (xp) &gt;= 7100 THEN 45
+                WHEN (xp) &gt;= 6800 THEN 44
+                WHEN (xp) &gt;= 6500 THEN 43
+                WHEN (xp) &gt;= 6200 THEN 42
+                WHEN (xp) &gt;= 5900 THEN 41
+                WHEN (xp) &gt;= 5700 THEN 40
+                WHEN (xp) &gt;= 5500 THEN 39
+                WHEN (xp) &gt;= 5300 THEN 38
+                WHEN (xp) &gt;= 5100 THEN 37
+                WHEN (xp) &gt;= 4900 THEN 36
+                WHEN (xp) &gt;= 4700 THEN 35
+                WHEN (xp) &gt;= 4500 THEN 34
+                WHEN (xp) &gt;= 4300 THEN 33
+                WHEN (xp) &gt;= 4100 THEN 32
+                WHEN (xp) &gt;= 3900 THEN 31
+                WHEN (xp) &gt;= 3700 THEN 30
+                WHEN (xp) &gt;= 3500 THEN 29
+                WHEN (xp) &gt;= 3300 THEN 28
+                WHEN (xp) &gt;= 3100 THEN 27
+                WHEN (xp) &gt;= 2900 THEN 26
+                WHEN (xp) &gt;= 2700 THEN 25
+                WHEN (xp) &gt;= 2500 THEN 24
+                WHEN (xp) &gt;= 2300 THEN 23
+                WHEN (xp) &gt;= 2100 THEN 22
+                WHEN (xp) &gt;= 1900 THEN 21
+                WHEN (xp) &gt;= 1800 THEN 20
+                WHEN (xp) &gt;= 1700 THEN 19
+                WHEN (xp) &gt;= 1600 THEN 18
+                WHEN (xp) &gt;= 1500 THEN 17
+                WHEN (xp) &gt;= 1400 THEN 16
+                WHEN (xp) &gt;= 1300 THEN 15
+                WHEN (xp) &gt;= 1200 THEN 14
+                WHEN (xp) &gt;= 1100 THEN 13
+                WHEN (xp) &gt;= 1000 THEN 12
+                WHEN (xp) &gt;= 900 THEN 11
+                WHEN (xp) &gt;= 800 THEN 10
+                WHEN (xp) &gt;= 700 THEN 9
+                WHEN (xp) &gt;= 600 THEN 8
+                WHEN (xp) &gt;= 500 THEN 7
+                WHEN (xp) &gt;= 400 THEN 6
+                WHEN (xp) &gt;= 300 THEN 5
+                WHEN (xp) &gt;= 200 THEN 4
+                WHEN (xp) &gt;= 100 THEN 3
+                WHEN (xp) &gt;= 0 THEN 2
+                ELSE 1
+    END
+    WHERE user_id = #{user_id}
+</update>
+
+    <select id="getBadgeIdsByQuestId" parameterType="int" resultType="int">
+        SELECT DISTINCT badge_id 
+        FROM badge_quest 
+        WHERE quest_id = #{quest_id}
+    </select>
+
+    <select id="getRequiredQuestsByBadgeId" parameterType="int" resultType="int">
+        SELECT quest_id 
+        FROM badge_quest 
+        WHERE badge_id = #{badge_id}
+    </select>
+
+    <select id="getCompletedQuestsByUserAndBadge" parameterType="map" resultType="int">
+        SELECT DISTINCT qu.quest_id
+        FROM quest_user qu
+        INNER JOIN badge_quest bq ON qu.quest_id = bq.quest_id
+        WHERE qu.user_id = #{user_id} 
+        AND qu.status = 'COMPLETED'
+        AND bq.badge_id = #{badge_id}
+    </select>
+
+    <select id="checkUserHasBadge" parameterType="map" resultType="int">
+        SELECT COUNT(*) 
+        FROM badge_user 
+        WHERE user_id = #{user_id} 
+        AND badge_id = #{badge_id}
+    </select>
+
+    <insert id="insertUserBadge" parameterType="map">
+        INSERT INTO badge_user (user_id, badge_id, awarded_at, is_displayed)
+        VALUES (#{user_id}, #{badge_id}, NOW(), false)
+    </insert>
 
 </mapper>

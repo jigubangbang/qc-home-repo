@@ -16,46 +16,71 @@
             q.is_seasonal,
             q.season_start,
             q.season_end,
-            q.status,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS status,
             q.created_at,
+            
+            (SELECT b.icon 
+            FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id 
+            ORDER BY bq.badge_id DESC 
+            LIMIT 1) AS icon,
 
-            (SELECT 
-                COUNT(*) 
-             FROM quest_user qu 
-             WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
+            (SELECT COUNT(*) 
+            FROM quest_user qu 
+            WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
             ) AS count_in_progress,
 
-            (SELECT 
-                COUNT(*) 
-             FROM quest_user qu 
-             WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
+            (SELECT COUNT(*) 
+            FROM quest_user qu 
+            WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
             ) AS count_completed
+            
         FROM quest q
         <where>
-            <!--카테고리 0: 전체-->
+            1=1
             <if test="category != null and category != 0">
-                q.category = #{category}
+                AND q.category = #{category}
             </if>
-
-            <!--난이도-->
             <if test="difficulty != null and difficulty != ''">
-                q.difficulty = #{difficulty}
+                AND q.difficulty = #{difficulty}
+            </if>
+            <if test="search != null and search != ''">
+                AND (q.title LIKE CONCAT('%', #{search}, '%') 
+                OR q.description LIKE CONCAT('%', #{search}, '%') 
+                OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
             </if>
         </where>
+
         <choose>
             <when test="sortOption == 'latest'">
                 ORDER BY q.created_at DESC
             </when>
-
-            <when test="sortOption == 'xp'">
+            
+            <when test="sortOption == 'oldest'">
+                ORDER BY q.created_at ASC
+            </when>
+            
+            <when test="sortOption == 'xp_high'">
                 ORDER BY q.xp DESC
+            </when>
+            
+            <when test="sortOption == 'xp_low'">
+                ORDER BY q.xp ASC
+            </when>
+
+            <when test="sortOption == 'default'">
+                ORDER BY q.id ASC
             </when>
 
             <otherwise>
                 ORDER BY q.id ASC
             </otherwise>
         </choose>
-        LIMIT #{questPerPage} OFFSET #{offset}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <select id="getQuestParticipants" resultType="com.jigubangbang.quest_service.model.QuestParticipantDto">
@@ -93,8 +118,23 @@
         SELECT COUNT(*) FROM quest_user WHERE status = 'IN_PROGRESS' AND quest_id = #{quest_id}
     </select>
 
-    <select id="countQuests" resultType="int">
-        SELECT COUNT(*) FROM quest
+    <select id="countQuests" resultType="int" parameterType="map">
+        SELECT COUNT(*)
+            FROM quest q
+            <where>
+                1=1
+                <if test="category != null and category != 0">
+                    AND q.category = #{category}
+                </if>
+                <if test="difficulty != null and difficulty != ''">
+                    AND q.difficulty = #{difficulty}
+                </if>
+                <if test="search != null and search != ''">
+                    AND (q.title LIKE CONCAT('%', #{search}, '%') 
+                    OR q.description LIKE CONCAT('%', #{search}, '%') 
+                    OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
+                </if>
+            </where>
     </select>
   
     <select id="selectQuestById" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestDto">
@@ -109,7 +149,10 @@
                 q.is_seasonal,
                 q.season_start,
                 q.season_end,
-                q.status,
+                CASE 
+                    WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                    ELSE q.status 
+                END AS status,
                 q.created_at,
                 
                 (SELECT 
@@ -134,5 +177,254 @@
             WHERE q.id = #{quest_id}
     </select>
 
+    <select id="getQuestModalById" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestPublicModalDto">
+        SELECT 
+            q.id,
+            q.type,
+            q.category,
+            q.title,
+            q.description,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS status,
 
+            (SELECT COUNT(*) FROM quest_user qu_prog WHERE qu_prog.quest_id = q.id AND qu_prog.status = 'IN_PROGRESS') as count_in_progress,
+            (SELECT COUNT(*) FROM quest_user qu_comp WHERE qu_comp.quest_id = q.id AND qu_comp.status = 'COMPLETED') as count_completed
+            
+        FROM quest q
+        WHERE q.id = #{quest_id}
+    </select>
+
+    <select id="getBadgesByQuestId" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.created_at,
+            b.difficulty,
+            (SELECT COUNT(*) FROM badge_user bu WHERE bu.badge_id = b.id) as acquired_count
+        FROM badge_quest bq
+        JOIN badge b ON bq.badge_id = b.id
+        WHERE bq.quest_id = #{quest_id}
+        ORDER BY b.id
+    </select>
+
+    <select id="getInProgressUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image
+        FROM quest_user qu
+        JOIN user u ON qu.user_id = u.user_id
+        WHERE qu.quest_id = #{quest_id} 
+        AND qu.status = 'IN_PROGRESS'
+        ORDER BY qu.started_at DESC
+    </select>
+
+    <select id="getCompletedUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image
+        FROM quest_user qu
+        JOIN user u ON qu.user_id = u.user_id
+        WHERE qu.quest_id = #{quest_id} 
+        AND qu.status = 'COMPLETED'
+        ORDER BY qu.completed_at DESC
+    </select>
+
+    <select id="getUserInfo" parameterType="String" resultType="map">
+        SELECT 
+            user_id,
+            profile_image,
+            nickname,
+            xp,
+            level
+        FROM user
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="getUserInProgressQuests" parameterType="String" resultType="com.jigubangbang.quest_service.model.QuestDetailDto">
+        SELECT 
+            qu.id as quest_user_id,
+            qu.user_id,
+            qu.quest_id,
+            qu.status,
+            qu.started_at,
+            qu.completed_at,
+            qu.given_up_at,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.description,
+            q.category,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS quest_status
+        FROM quest_user qu
+        INNER JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.user_id = #{userId} 
+        AND qu.status = 'IN_PROGRESS'
+        ORDER BY qu.started_at DESC
+    </select>
+
+    <!-- 사용자의 완료된 퀘스트 목록 조회 -->
+    <select id="getUserCompletedQuests" parameterType="String" resultType="com.jigubangbang.quest_service.model.QuestDetailDto">
+        SELECT 
+            qu.id as quest_user_id,
+            qu.user_id,
+            qu.quest_id,
+            qu.status,
+            qu.started_at,
+            qu.completed_at,
+            qu.given_up_at,
+            q.title,
+            q.difficulty,
+            q.xp,
+            q.description,
+            q.category,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS quest_status
+        FROM quest_user qu
+        INNER JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.user_id = #{userId} 
+        AND qu.status = 'COMPLETED'
+        ORDER BY qu.completed_at DESC
+    </select>
+
+    <!-- 시스템 전체의 모든 퀘스트 수 (유저와 관계없이) -->
+    <select id="getTotalQuestCount" resultType="int">
+        SELECT COUNT(*)
+        FROM quest
+    </select>
+
+    <!-- 각 카테고리별 정보와 사용자의 진행중/완료/전체 퀘스트 통계 -->
+    <select id="getQuestCategoriesWithUserStats" parameterType="String" resultType="com.jigubangbang.quest_service.model.QuestCategoryDto">
+        SELECT 
+            qc.id,
+            qc.title,
+            qc.subtitle,
+            COALESCE(progress_stats.count_in_progress, 0) as count_in_progress,
+            COALESCE(completed_stats.count_completed, 0) as count_completed,
+            COALESCE(total_stats.count_total, 0) as count_total
+        FROM quest_category qc
+        LEFT JOIN (
+            SELECT 
+                q.category,
+                COUNT(*) as count_in_progress
+            FROM quest q
+            INNER JOIN quest_user qu ON q.id = qu.quest_id
+            WHERE qu.user_id = #{userId} 
+            AND qu.status = 'IN_PROGRESS'
+            GROUP BY q.category
+        ) progress_stats ON qc.id = progress_stats.category
+        LEFT JOIN (
+            SELECT 
+                q.category,
+                COUNT(*) as count_completed
+            FROM quest q
+            INNER JOIN quest_user qu ON q.id = qu.quest_id
+            WHERE qu.user_id = #{userId} 
+            AND qu.status = 'COMPLETED'
+            GROUP BY q.category
+        ) completed_stats ON qc.id = completed_stats.category
+        LEFT JOIN (
+            SELECT 
+                category,
+                COUNT(*) as count_total
+            FROM quest
+            GROUP BY category
+        ) total_stats ON qc.id = total_stats.category
+        ORDER BY qc.id
+    </select>
+
+    <!-- 사용자의 대표 뱃지 조회 -->
+    <select id="getUserPinnedBadge" parameterType="String" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.created_at,
+            b.difficulty
+        FROM badge_user bu
+        INNER JOIN badge b ON bu.badge_id = b.id
+        WHERE bu.user_id = #{userId} 
+        AND bu.is_displayed = true
+        LIMIT 1
+    </select>
+
+    <!-- 사용자의 뱃지 카운트 조회 (전체 뱃지 수, 획득한 뱃지 수) -->
+    <select id="getUserBadgeCounts" parameterType="String" resultType="map">
+        SELECT 
+            (SELECT COUNT(*) FROM badge) as total,
+            (SELECT COUNT(*) 
+             FROM badge_user ub 
+             WHERE ub.user_id = #{userId} 
+             AND ub.awarded_at IS NOT NULL) as awarded
+    </select>
+
+    <select id="getQuestCerti" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestCerti">
+        SELECT
+            qu.id,
+            qu.user_id as user_id,
+            qu.quest_id as quest_id,
+            qu.status,
+            qu.description,
+            qu.started_at as started_at,
+            qu.completed_at as completed_at,
+            qu.given_up_at as given_up_at,
+            
+            q.title,
+            q.difficulty,
+            q.description as quest_description,
+            q.xp
+        FROM quest_user qu
+        JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.id = #{quest_user_id}
+    </select>
+
+    <select id="getQuestCertiImages" parameterType="int" resultType="String">
+        SELECT image
+        FROM quest_image
+        WHERE quest_user_id = #{quest_user_id}
+    </select>
+
+    <select id="getUserGraph" resultType="com.jigubangbang.quest_service.model.SimpleUserDto">
+        SELECT user_id, xp, level
+        from user
+    </select>
+
+    <select id="getUserRank" parameterType="String" resultType="int">
+        SELECT ranking
+        FROM (
+            SELECT user_id,
+                RANK() OVER (ORDER BY xp DESC) AS ranking
+            FROM user
+        ) ranked
+        WHERE user_id = #{user_id}
+    </select>
+
+    <select id="getCountUser" resultType="int">
+        SELECT COUNT(*)
+        from user
+    </select>
 </mapper>

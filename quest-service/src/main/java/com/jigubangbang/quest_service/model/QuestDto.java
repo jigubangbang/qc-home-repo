@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 public class QuestDto {
     private int id;
-    private String type;         // ENUM('AUTH', 'CHECK')
+    private String type;       
     private int category;
     private String title;
     private String difficulty;  // ENUM('EASY', 'MEDIUM', 'HARD')
@@ -19,8 +19,12 @@ public class QuestDto {
     private Timestamp season_end;
     private String status;       // ENUM( 'AUTH', 'CHECK' )
     private Timestamp created_at;
+    
+    private String icon;
 
     //join
     private int count_in_progress;
     private int count_completed;
+
+    private String user_status;
 }
