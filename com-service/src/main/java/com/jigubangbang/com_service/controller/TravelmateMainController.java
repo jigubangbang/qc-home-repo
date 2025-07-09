@@ -23,9 +23,12 @@ public class TravelmateMainController {
     @GetMapping("/countries")
     public ResponseEntity<List<CountryDto>> getAllCountries() {
         try {
+            System.out.println("getAllCountries 메서드 호출됨");
             List<CountryDto> countries = travelmateService.getAllCountries();
             return ResponseEntity.ok(countries);
         } catch (Exception e) {
+            System.err.println("에러 발생: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
     }
