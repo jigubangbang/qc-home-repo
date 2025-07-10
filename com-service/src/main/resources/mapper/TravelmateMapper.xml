@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.com_service.repository.TravelmateMapper">
+    <select id="selectAllCountries" resultType="com.jigubangbang.com_service.model.CountryDto">
+        SELECT 
+            id,
+            name,
+            continent
+        FROM country
+        ORDER BY name ASC
+    </select>
+
+    <select id="selectCitiesByCountryId" parameterType="String" resultType="com.jigubangbang.com_service.model.CityDto">
+        SELECT 
+            id,
+            city_name as cityName,
+            country_id as countryId
+        FROM city
+        WHERE country_id = #{countryId}
+        ORDER BY city_name ASC
+    </select>
+
+    <select id="selectAllTargets" resultType="com.jigubangbang.com_service.model.TargetDto">
+        SELECT 
+            id,
+            code,
+            label
+        FROM travel_theme
+        WHERE code LIKE 'TARGET_%'
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectAllThemes" resultType="com.jigubangbang.com_service.model.ThemeDto">
+        SELECT 
+            id,
+            code,
+            label
+        FROM travel_theme
+        WHERE code LIKE 'THEME_%'
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectAllTravelStyles" resultType="com.jigubangbang.com_service.model.TravelStyleDto">
+        SELECT 
+            id,
+            label
+        FROM travel_style
+        ORDER BY id ASC
+    </select>
+
+    <select id="findTravelmateList" resultType="java.util.Map">
+        SELECT DISTINCT
+            tp.id,
+            tp.title,
+            tp.simple_description AS simpleDescription,
+            tp.thumbnail_image AS thumbnailImage,
+            u.nickname AS creatorNickname,
+            ts.label AS creatorStyle,
+            tp.start_at AS startAt,
+            tp.end_at AS endAt,
+            tp.view_count AS viewCount,
+            tp.status,
+            
+            COALESCE(like_counts.like_count, 0) AS likeCount,
+            
+            <!-- 지역 정보 -->
+            GROUP_CONCAT(DISTINCT CONCAT(c.name, ' ', ci.city_name) SEPARATOR ', ') AS locationNames,
+            
+            <!-- 테마 정보 (targets + themes 합쳐서) -->
+            GROUP_CONCAT(DISTINCT CASE WHEN tt.code LIKE 'THEME_%' THEN tt.label END SEPARATOR ', ') AS themeNames,
+
+            
+            <!-- 스타일 정보 -->
+            GROUP_CONCAT(DISTINCT style.label SEPARATOR ', ') AS styleNames,
+            
+            <!-- 타겟 정보는 테마와 같이 처리되므로 별도로 조회 -->
+            (SELECT GROUP_CONCAT(DISTINCT target_theme.label SEPARATOR ', ')
+             FROM travelmate_theme tmt_target
+             JOIN travel_theme target_theme ON tmt_target.theme_id = target_theme.id
+             WHERE tmt_target.mate_id = tp.id 
+             AND target_theme.code LIKE 'TARGET_%') AS targetNames,
+
+             tp.blind_status as blindStatus
+        FROM travelmate_post tp
+        JOIN user u ON tp.creator_id = u.user_id
+        LEFT JOIN travel_style ts ON u.travel_style_id = ts.id
+        
+        <!-- 지역 조인 -->
+        LEFT JOIN travelmate_region tr ON tp.id = tr.mate_id
+        LEFT JOIN country c ON tr.country_id = c.id
+        LEFT JOIN city ci ON tr.city_id = ci.id
+        
+        <!-- 테마 조인 (targets와 themes 모두 포함) -->
+        LEFT JOIN travelmate_theme tmt ON tp.id = tmt.mate_id
+        LEFT JOIN travel_theme tt ON tmt.theme_id = tt.id
+        
+        <!-- 스타일 조인 -->
+        LEFT JOIN travelmate_style tms ON tp.id = tms.mate_id
+        LEFT JOIN travel_style style ON tms.style_id = style.id
+        
+        <!-- 좋아요 수 계산 -->
+        LEFT JOIN (
+            SELECT mate_id, COUNT(*) AS like_count
+            FROM travelmate_like
+            GROUP BY mate_id
+        ) like_counts ON tp.id = like_counts.mate_id
+        
+        WHERE tp.is_public = true
+        
+        <!-- 완료된 모임 필터 -->
+        <if test="!showCompleted">
+            AND tp.status = 'ACTIVE'
+        </if>
+
+        <if test="startDate != null and startDate != ''">
+            AND tp.start_at &gt;= #{startDate}
+        </if>
+
+        <if test="endDate != null and endDate != ''">
+            AND tp.end_at &lt;= #{endDate}
+        </if>
+
+        <if test="continents != null and continents.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_region tr_continent
+                LEFT JOIN country c_continent ON tr_continent.country_id = c_continent.id
+                WHERE tr_continent.mate_id = tp.id
+                AND c_continent.continent IN
+                <foreach collection="continents" item="continent" open="(" close=")" separator=",">
+                    #{continent}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 지역 필터 -->
+        <if test="locations != null and locations.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_region tr2
+                WHERE tr2.mate_id = tp.id
+                AND CONCAT(tr2.country_id, '-', tr2.city_id) IN
+                <foreach collection="locations" item="location" open="(" close=")" separator=",">
+                    #{location}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 타겟 필터 -->
+        <if test="targets != null and targets.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_theme tmt2
+                WHERE tmt2.mate_id = tp.id
+                AND tmt2.theme_id IN
+                <foreach collection="targets" item="target" open="(" close=")" separator=",">
+                    #{target}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 테마 필터 -->
+        <if test="themes != null and themes.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_theme tmt3
+                WHERE tmt3.mate_id = tp.id
+                AND tmt3.theme_id IN
+                <foreach collection="themes" item="theme" open="(" close=")" separator=",">
+                    #{theme}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 스타일 필터 -->
+        <if test="styles != null and styles.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_style tms2
+                WHERE tms2.mate_id = tp.id
+                AND tms2.style_id IN
+                <foreach collection="styles" item="style" open="(" close=")" separator=",">
+                    #{style}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 검색 필터 -->
+        <if test="search != null and search != ''">
+            AND (tp.title LIKE CONCAT('%', #{search}, '%')
+                 OR tp.simple_description LIKE CONCAT('%', #{search}, '%')
+                 OR tp.description LIKE CONCAT('%', #{search}, '%'))
+        </if>
+        
+        GROUP BY tp.id, tp.title, tp.simple_description, tp.thumbnail_image, 
+                 u.nickname, ts.label, tp.start_at, tp.end_at, tp.view_count, 
+                 tp.status, like_counts.like_count, tp.blind_status
+        
+        <!-- 정렬 -->
+        <choose>
+            <when test="sortOption == 'latest'">
+                ORDER BY tp.created_at DESC
+            </when>
+            <when test="sortOption == 'period'">
+                ORDER BY ABS(DATEDIFF(tp.start_at, NOW())) ASC
+            </when>
+            <when test="sortOption == 'likes'">
+                ORDER BY like_counts.like_count DESC, tp.created_at DESC
+            </when>
+            <otherwise>
+                ORDER BY tp.id DESC
+            </otherwise>
+        </choose>
+        
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 여행메이트 총 개수 조회 -->
+    <select id="countTravelmateList" resultType="long">
+        SELECT COUNT(DISTINCT tp.id)
+        FROM travelmate_post tp
+        
+        WHERE tp.is_public = true
+        
+        <!-- 완료된 모임 필터 -->
+        <if test="!showCompleted">
+            AND tp.status = 'ACTIVE'
+        </if>
+
+        <if test="startDate != null and startDate != ''">
+            AND tp.start_at &gt;= #{startDate}
+        </if>
+
+        <if test="endDate != null and endDate != ''">
+            AND tp.end_at &lt;= #{endDate}
+        </if>
+
+        <if test="continents != null and continents.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_region tr_continent
+                LEFT JOIN country c_continent ON tr_continent.country_id = c_continent.id
+                WHERE tr_continent.mate_id = tp.id
+                AND c_continent.continent IN
+                <foreach collection="continents" item="continent" open="(" close=")" separator=",">
+                    #{continent}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 지역 필터 -->
+        <if test="locations != null and locations.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_region tr
+                WHERE tr.mate_id = tp.id
+                AND CONCAT(tr.country_id, '-', tr.city_id) IN
+                <foreach collection="locations" item="location" open="(" close=")" separator=",">
+                    #{location}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 타겟 필터 -->
+        <if test="targets != null and targets.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_theme tmt
+                WHERE tmt.mate_id = tp.id
+                AND tmt.theme_id IN
+                <foreach collection="targets" item="target" open="(" close=")" separator=",">
+                    #{target}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 테마 필터 -->
+        <if test="themes != null and themes.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_theme tmt
+                WHERE tmt.mate_id = tp.id
+                AND tmt.theme_id IN
+                <foreach collection="themes" item="theme" open="(" close=")" separator=",">
+                    #{theme}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 스타일 필터 -->
+        <if test="styles != null and styles.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travelmate_style tms
+                WHERE tms.mate_id = tp.id
+                AND tms.style_id IN
+                <foreach collection="styles" item="style" open="(" close=")" separator=",">
+                    #{style}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 검색 필터 -->
+        <if test="search != null and search != ''">
+            AND (tp.title LIKE CONCAT('%', #{search}, '%')
+                 OR tp.simple_description LIKE CONCAT('%', #{search}, '%')
+                 OR tp.description LIKE CONCAT('%', #{search}, '%'))
+        </if>
+    </select>
+
+    <!-- 사용자가 좋아요한 게시글 ID 목록 조회 -->
+    <select id="findLikedPostIdsByUserId" parameterType="string" resultType="long">
+        SELECT mate_id
+        FROM travelmate_like
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 좋아요 추가 -->
+    <insert id="insertLike">
+        INSERT INTO travelmate_like (mate_id, user_id, created_at)
+        VALUES (#{postId}, #{userId}, NOW())
+    </insert>
+
+    <!-- 좋아요 제거 -->
+    <delete id="deleteLike">
+        DELETE FROM travelmate_like
+        WHERE mate_id = #{postId} AND user_id = #{userId}
+    </delete>
+
+    <!-- 좋아요 존재 여부 확인 -->
+    <select id="existsLike" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM travelmate_like
+        WHERE mate_id = #{postId} AND user_id = #{userId}
+    </select>
+
+    <!-- 게시글 존재 여부 확인 -->
+    <select id="existsPost" parameterType="long" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM travelmate_post
+        WHERE id = #{postId} AND is_public = true AND blind_status = 'VISIBLE'
+    </select>
+
+</mapper>
