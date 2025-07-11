@@ -11,7 +11,7 @@
             ti.title,
             ti.simple_description AS simpleDescription,
             ti.creator_id AS creatorId,
-            u.nickname AS creator_nickname,
+            u.nickname AS creatorNickname,
             ti.enter_description AS enterDescription,
             ti.thumbnail_image AS thumbnailImage,
             ti.created_at AS createdAt,
@@ -80,7 +80,7 @@
             GROUP BY cr.group_id
         ) chat_counts ON ti.id = chat_counts.travel_info_id
 
-        LEFT JOIN user u ON u.id=ti.creator_id
+        LEFT JOIN user u ON u.user_id=ti.creator_id
         
         WHERE 1=1
         
@@ -216,4 +216,82 @@
         WHERE group_type = 'TRAVELINFO'
         AND user_id = #{userId}
     </select>
+
+    <select id="selectTravelInfoById" parameterType="long" resultType="com.jigubangbang.com_service.model.TravelInfoResponseDto">
+        SELECT 
+            id,
+            title,
+            simple_description AS simpleDescription,
+            enter_description AS enterDescription,
+            thumbnail_image AS thumbnailImage,
+            creator_id AS creatorId,
+            blind_status AS blindStatus,
+            created_at AS createdAt,
+            updated_at AS updatedAt
+        FROM travel_info
+        WHERE id = #{id}
+          AND deleted = false
+    </select>
+
+    <!-- 정보방 생성 -->
+    <insert id="insertTravelInfo" parameterType="com.jigubangbang.com_service.model.TravelInfoRequestDto" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO travel_info (
+            title,
+            simple_description,
+            enter_description,
+            thumbnail_image,
+            creator_id,
+            created_at
+        ) VALUES (
+            #{title},
+            #{simpleDescription},
+            #{enterDescription},
+            #{thumbnailImage},
+            #{creatorId},
+            NOW()
+        )
+    </insert>
+
+    <!-- 정보방 수정 -->
+    <update id="updateTravelInfo" parameterType="com.jigubangbang.com_service.model.TravelInfoRequestDto">
+        UPDATE travel_info SET
+            title = #{title},
+            simple_description = #{simpleDescription},
+            enter_description = #{enterDescription},
+            thumbnail_image = #{thumbnailImage},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 정보방 테마 관계 조회 -->
+    <select id="selectThemeIdsByTravelInfoId" parameterType="long" resultType="integer">
+        SELECT theme_id
+        FROM travel_info_theme
+        WHERE travel_info_id = #{travelInfoId}
+    </select>
+
+    <!-- 테마 이름 조회 -->
+    <select id="selectThemeNamesByIds" parameterType="list" resultType="string">
+        SELECT GROUP_CONCAT(label SEPARATOR ', ')
+        FROM info_theme
+        WHERE id IN
+        <foreach collection="themeIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 정보방 테마 관계 등록 -->
+    <insert id="insertTravelInfoThemes">
+        INSERT INTO travel_info_theme (travel_info_id, theme_id)
+        VALUES
+        <foreach collection="themeIds" item="themeId" separator=",">
+            (#{travelInfoId}, #{themeId})
+        </foreach>
+    </insert>
+
+    <!-- 정보방 테마 관계 삭제 -->
+    <delete id="deleteTravelInfoThemes" parameterType="long">
+        DELETE FROM travel_info_theme
+        WHERE travel_info_id = #{travelInfoId}
+    </delete>
 </mapper>

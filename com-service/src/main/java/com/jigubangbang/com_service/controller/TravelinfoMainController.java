@@ -1,5 +1,6 @@
 package com.jigubangbang.com_service.controller;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -9,11 +10,15 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.com_service.model.TravelInfoListResponse;
+import com.jigubangbang.com_service.model.TravelInfoRequestDto;
+import com.jigubangbang.com_service.model.TravelInfoResponseDto;
 import com.jigubangbang.com_service.service.TravelinfoService;
 
 @RestController
@@ -149,4 +154,78 @@ public class TravelinfoMainController {
         return ResponseEntity.ok(Map.of("joinedChatIds", joinedChatIds));
     }
 
+    /**
+     * 정보방 상세 조회
+     * GET /api/community/public/travelinfo/{id}
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> getTravelInfo(@PathVariable Long id) {
+        try {
+            TravelInfoResponseDto travelinfo = travelinfoService.getTravelInfoById(id);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("travelinfo", travelinfo);
+            response.put("success", true);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "정보방을 찾을 수 없습니다.");
+            
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> createTravelInfo(@RequestBody TravelInfoRequestDto requestDTO) {
+        try {
+            //#NeedToChange
+            requestDTO.setCreatorId("aaa");
+            Long travelInfoId = travelinfoService.createTravelInfo(requestDTO);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("travelInfoId", travelInfoId);
+            response.put("success", true);
+            response.put("message", "정보방이 성공적으로 생성되었습니다.");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            // 기타 예외
+            System.err.println("정보방 수정 중 예상치 못한 오류: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "정보방 수정에 실패했습니다: " + e.getMessage());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    /**
+     * 정보방 수정
+     * PUT /api/community/public/travelinfo/{id}
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> updateTravelInfo(
+            @PathVariable Long id, 
+            @RequestBody TravelInfoRequestDto requestDTO) {
+        try {
+            travelinfoService.updateTravelInfo(id, requestDTO);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("travelInfoId", id);
+            response.put("success", true);
+            response.put("message", "정보방이 성공적으로 수정되었습니다.");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "정보방 수정에 실패했습니다.");
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
 }

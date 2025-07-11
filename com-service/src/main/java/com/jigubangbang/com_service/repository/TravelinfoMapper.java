@@ -6,6 +6,9 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.jigubangbang.com_service.model.TravelInfoRequestDto;
+import com.jigubangbang.com_service.model.TravelInfoResponseDto;
+
 @Mapper
 public interface TravelinfoMapper {
     //조회
@@ -30,4 +33,13 @@ public interface TravelinfoMapper {
     void insertTravelInfoMember(@Param("travelInfoId") Long travelInfoId, @Param("userId") String userId);
     boolean existsTravelInfoMember(@Param("travelInfoId") Long travelInfoId, @Param("userId") String userId);
     List<Long> findJoinedTravelInfoIdsByUserId(@Param("userId") String userId);
+
+    //생성 / 수정
+    TravelInfoResponseDto selectTravelInfoById(@Param("id") Long id);
+    Long insertTravelInfo(TravelInfoRequestDto requestDTO);
+    void updateTravelInfo(TravelInfoRequestDto requestDTO);
+    List<Integer> selectThemeIdsByTravelInfoId(@Param("travelInfoId") Long travelInfoId);
+    String selectThemeNamesByIds(@Param("themeIds") List<Integer> themeIds);
+    void insertTravelInfoThemes(@Param("travelInfoId") Long travelInfoId, @Param("themeIds") List<Integer> themeIds);
+    void deleteTravelInfoThemes(@Param("travelInfoId") Long travelInfoId);
 }

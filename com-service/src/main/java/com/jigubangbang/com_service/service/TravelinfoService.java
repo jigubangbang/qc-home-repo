@@ -9,9 +9,12 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jigubangbang.com_service.model.TravelInfoDto;
 import com.jigubangbang.com_service.model.TravelInfoListResponse;
+import com.jigubangbang.com_service.model.TravelInfoRequestDto;
+import com.jigubangbang.com_service.model.TravelInfoResponseDto;
 import com.jigubangbang.com_service.repository.TravelinfoMapper;
 
 @Service
@@ -108,9 +111,80 @@ public class TravelinfoService {
         }
     }
 
-    /**
-     * Map을 TravelInfoDto로 변환
-     */
+
+    @Transactional(readOnly = true)
+    public TravelInfoResponseDto getTravelInfoById(Long id) {
+        TravelInfoResponseDto travelInfo = travelinfoMapper.selectTravelInfoById(id);
+        
+        if (travelInfo == null) {
+            throw new RuntimeException("정보방을 찾을 수 없습니다.");
+        }
+        
+        // 관련 테마 데이터 조회
+        List<Integer> themeIds = travelinfoMapper.selectThemeIdsByTravelInfoId(id);
+        travelInfo.setThemeIds(themeIds);
+        
+        // 테마 이름 조회 (필요한 경우)
+        if (themeIds != null && !themeIds.isEmpty()) {
+            String themeNames = travelinfoMapper.selectThemeNamesByIds(themeIds);
+            travelInfo.setThemeNames(themeNames);
+        }
+        
+        return travelInfo;
+    }
+
+    public Long createTravelInfo(TravelInfoRequestDto requestDTO) {
+        validateTravelInfoRequest(requestDTO);
+        requestDTO.setCreatedAt(LocalDateTime.now());
+        requestDTO.setUpdatedAt(LocalDateTime.now());
+
+       
+        travelinfoMapper.insertTravelInfo(requestDTO); // return 값 받지 말고
+        Long travelInfoId = requestDTO.getId();
+        
+        System.out.println("=====아이디는="+travelInfoId);
+        if (requestDTO.getThemeIds() != null && !requestDTO.getThemeIds().isEmpty()) {
+            travelinfoMapper.insertTravelInfoThemes(travelInfoId, requestDTO.getThemeIds());
+        }
+        
+        return travelInfoId;
+    }
+
+    public void updateTravelInfo(Long id, TravelInfoRequestDto requestDTO) {
+        TravelInfoResponseDto existingTravelInfo = travelinfoMapper.selectTravelInfoById(id);
+        if (existingTravelInfo == null) {
+            throw new RuntimeException("정보방을 찾을 수 없습니다.");
+        }
+        validateTravelInfoRequest(requestDTO);
+
+        requestDTO.setId(id);
+        requestDTO.setUpdatedAt(LocalDateTime.now());
+        travelinfoMapper.updateTravelInfo(requestDTO);
+        travelinfoMapper.deleteTravelInfoThemes(id);
+        if (requestDTO.getThemeIds() != null && !requestDTO.getThemeIds().isEmpty()) {
+            travelinfoMapper.insertTravelInfoThemes(id, requestDTO.getThemeIds());
+        }
+    }
+
+    private void validateTravelInfoRequest(TravelInfoRequestDto requestDTO) {
+        if (requestDTO.getTitle() == null || requestDTO.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("정보방 제목은 필수입니다.");
+        }
+        
+        if (requestDTO.getSimpleDescription() == null || requestDTO.getSimpleDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("정보방 설명은 필수입니다.");
+        }
+        
+        if (requestDTO.getEnterDescription() == null || requestDTO.getEnterDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("참여 안내 메시지는 필수입니다.");
+        }
+        
+        if (requestDTO.getThemeIds() == null || requestDTO.getThemeIds().isEmpty()) {
+            throw new IllegalArgumentException("카테고리는 최소 1개 이상 선택해야 합니다.");
+        }
+    }
+
+
     private TravelInfoDto convertMapToDto(Map<String, Object> map) {
         TravelInfoDto dto = new TravelInfoDto();
         
