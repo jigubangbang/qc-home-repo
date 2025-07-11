@@ -5,34 +5,40 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.com_service.model.CityDto;
 import com.jigubangbang.com_service.model.CountryDto;
+import com.jigubangbang.com_service.model.CreateCommentRequest;
 import com.jigubangbang.com_service.model.LikedPostsResponse;
 import com.jigubangbang.com_service.model.TargetDto;
 import com.jigubangbang.com_service.model.ThemeDto;
 import com.jigubangbang.com_service.model.TravelStyleDto;
+import com.jigubangbang.com_service.model.TravelmateCommentDto;
+import com.jigubangbang.com_service.model.TravelmateCreateRequest;
+import com.jigubangbang.com_service.model.TravelmateDetailResponse;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
+import com.jigubangbang.com_service.model.TravelmateMemberDto;
+import com.jigubangbang.com_service.model.TravelmateUpdateRequest;
 import com.jigubangbang.com_service.service.TravelmateService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/com")
 public class TravelmateMainController {
     @Autowired
     private TravelmateService travelmateService;
-
-    @GetMapping("/test")
-    public String test(){
-        return "good";
-    }
 
     //국가 목록 조회
     @GetMapping("/countries")
@@ -90,7 +96,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/list")
+    @GetMapping("/travelmate/list")
     public ResponseEntity<TravelmateListResponse> getTravelmateList(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(required = false) String locations,
@@ -107,9 +113,6 @@ public class TravelmateMainController {
         // 페이지 설정
         int pageSize = 10;
         int offset = (pageNum - 1) * pageSize;
-
-        System.out.println("받은 startDate: " + startDate);
-    System.out.println("받은 endDate: " + endDate);
 
         // 필터 파라미터 파싱
         List<String> locationList = parseCommaSeparatedString(locations);
@@ -138,7 +141,7 @@ public class TravelmateMainController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/likes")
+    @GetMapping("/travelmate/likes")
     public ResponseEntity<LikedPostsResponse> getLikedPosts() {
         //인증 못하면
         // if (authentication == null || !authentication.isAuthenticated()) {
@@ -153,7 +156,7 @@ public class TravelmateMainController {
         return ResponseEntity.ok(new LikedPostsResponse(likedPostIds));
     }
 
-    @PostMapping("/like/{postId}")
+    @PostMapping("/travelmate/like/{postId}")
     public ResponseEntity<Map<String, Object>> addLike(
             @PathVariable Long postId
             ) {
@@ -173,7 +176,7 @@ public class TravelmateMainController {
         }
     }
 
-    @DeleteMapping("/like/{postId}")
+    @DeleteMapping("/travelmate/like/{postId}")
     public ResponseEntity<Map<String, Object>> removeLike(
             @PathVariable Long postId
            ) {
@@ -212,6 +215,227 @@ public class TravelmateMainController {
                     .toList();
         } catch (NumberFormatException e) {
             return List.of();
+        }
+    }
+
+    @GetMapping("/travelmate/{postId}")
+    public ResponseEntity<TravelmateDetailResponse> getTravelmateDetail(@PathVariable Long postId) {
+        try {
+            TravelmateDetailResponse detail = travelmateService.getTravelmateDetail(postId);
+            return ResponseEntity.ok(detail);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/travelmate/{postId}/member-status")
+    public ResponseEntity<Map<String, Object>> getMemberStatus(
+        @PathVariable Long postId) {
+    
+    // if (authentication == null || !authentication.isAuthenticated()) {
+    //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+    // }
+
+    // String userId = authentication.getName();
+    //#NeedToChange
+        String userId = "aaa";
+        
+        try {
+            String status = travelmateService.getMemberStatus(postId, userId);
+            return ResponseEntity.ok(Map.of("status", status));
+        } catch (Exception e) {
+            System.err.println("멤버 상태 조회 중 오류: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "멤버 상태 조회에 실패했습니다."));
+        }
+    }
+
+    @PostMapping("/travelmate/{postId}/join")
+    public ResponseEntity<Map<String, Object>> joinTravelmate(
+            @PathVariable Long postId,
+            @RequestBody Map<String, String> request) {
+        
+        String userId = "aaa"; // #NeedToChange
+        String description = request.get("description");
+        
+        try {
+            travelmateService.joinTravelmate(postId, userId, description);
+            return ResponseEntity.ok(Map.of(
+                "success", true, 
+                "message", "참여 신청이 완료되었습니다.",
+                "status", "PENDING"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/travelmate/{postId}/members")
+    public ResponseEntity<List<TravelmateMemberDto>> getTravelmateMembers(@PathVariable Long postId) {
+        try {
+            List<TravelmateMemberDto> members = travelmateService.getTravelmateMembers(postId);
+            return ResponseEntity.ok(members);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/travelmate/{postId}/comments")
+    public ResponseEntity<List<TravelmateCommentDto>> getTravelmateQuestions(@PathVariable Long postId) {
+        try {
+            List<TravelmateCommentDto> questions = travelmateService.getTravelmateQuestions(postId);
+            return ResponseEntity.ok(questions);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping("/travelmate/{postId}/comments")
+    public ResponseEntity<Map<String, Object>> createQuestion(
+            @PathVariable Long postId,
+            @RequestBody CreateCommentRequest request) {
+        
+        // if (authentication == null || !authentication.isAuthenticated()) {
+        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        // }
+
+        // String userId = authentication.getName();
+        //#NeedToChange
+        String userId = "aaa";
+        
+        try {
+            travelmateService.createComment(postId, userId, request.getContent());
+            return ResponseEntity.ok(Map.of("success", true, "message", "질문이 등록되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // 답변 등록
+    @PostMapping("/travelmate/{postId}/comments/{parentId}/replies")
+    public ResponseEntity<Map<String, Object>> createReply(
+            @PathVariable Long postId,
+            @PathVariable Long parentId,
+            @RequestBody CreateCommentRequest request) {
+        
+        // if (authentication == null || !authentication.isAuthenticated()) {
+        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        // }
+
+        // String userId = authentication.getName();
+        //#NeedToChange
+        String userId = "aaa";
+        
+        try {
+            travelmateService.createReply(postId, parentId, userId, request.getContent());
+            return ResponseEntity.ok(Map.of("success", true, "message", "답변이 등록되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/travelmate/{postId}/comments/{commentId}")
+    public ResponseEntity<Map<String, Object>> updateComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestBody CreateCommentRequest request) {
+        
+        // String userId = authentication.getName();
+        //#NeedToChange
+        String userId = "aaa";
+        
+        try {
+            travelmateService.updateComment(postId, commentId, userId, request.getContent());
+            return ResponseEntity.ok(Map.of("success", true, "message", "댓글이 수정되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // 댓글 삭제 (소프트 삭제)
+    @DeleteMapping("/travelmate/{postId}/comments/{commentId}")
+    public ResponseEntity<Map<String, Object>> deleteComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId) {
+        
+        // String userId = authentication.getName();
+        //#NeedToChange
+        String userId = "aaa";
+        
+        try {
+            travelmateService.deleteComment(postId, commentId, userId);
+            return ResponseEntity.ok(Map.of("success", true, "message", "댓글이 삭제되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+        @PutMapping("/travelmate/{postId}")
+        public ResponseEntity<Map<String, Object>> updateTravelmate(
+                @PathVariable("postId") Long postId,
+                @RequestBody TravelmateUpdateRequest request,
+                HttpServletRequest httpRequest) {
+            
+            try {
+                // JWT에서 사용자 ID 추출 #NeedToChange
+                //String currentUserId = JwtUtils.getUserIdFromRequest(httpRequest);
+                String currentUserId="aaa";
+                // if (currentUserId == null) {
+                //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                //         .body(Map.of("error", "로그인이 필요합니다."));
+                // }
+
+                // 모임 수정
+                travelmateService.updateTravelmate(postId, request, currentUserId);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "모임이 성공적으로 수정되었습니다.");
+                response.put("travelmateId", postId);
+                
+                return ResponseEntity.ok(response);
+                
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "모임 수정 권한이 없습니다."));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "모임 수정에 실패했습니다."));
+            }
+        }
+
+
+    @PostMapping("/travelmate")
+    public ResponseEntity<Map<String, Object>> createTravelmate(
+            @RequestBody TravelmateCreateRequest request,
+            HttpServletRequest httpRequest) {
+        
+        try {
+            // JWT에서 사용자 ID 추출
+            // String currentUserId = JwtUtils.getUserIdFromRequest(httpRequest);
+            String currentUserId="aaa";
+            
+            // if (currentUserId == null) {
+            //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            //         .body(Map.of("error", "로그인이 필요합니다."));
+            // }
+
+            // 모임 생성
+            Long travelmateId = travelmateService.createTravelmate(request, currentUserId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "모임이 성공적으로 생성되었습니다.");
+            response.put("travelmateId", travelmateId);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("error", "모임 생성에 실패했습니다.", "detail", e.getMessage()));
         }
     }
 }

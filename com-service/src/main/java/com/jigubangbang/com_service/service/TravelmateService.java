@@ -2,20 +2,32 @@ package com.jigubangbang.com_service.service;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jigubangbang.com_service.model.CityDto;
 import com.jigubangbang.com_service.model.CountryDto;
 import com.jigubangbang.com_service.model.TargetDto;
 import com.jigubangbang.com_service.model.ThemeDto;
 import com.jigubangbang.com_service.model.TravelStyleDto;
+import com.jigubangbang.com_service.model.Travelmate;
+import com.jigubangbang.com_service.model.TravelmateCommentDto;
+import com.jigubangbang.com_service.model.TravelmateCreateDto;
+import com.jigubangbang.com_service.model.TravelmateCreateRequest;
+import com.jigubangbang.com_service.model.TravelmateDetailDto;
+import com.jigubangbang.com_service.model.TravelmateDetailResponse;
 import com.jigubangbang.com_service.model.TravelmateDto;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
+import com.jigubangbang.com_service.model.TravelmateMemberDto;
+import com.jigubangbang.com_service.model.TravelmateUpdateDto;
+import com.jigubangbang.com_service.model.TravelmateUpdateRequest;
 import com.jigubangbang.com_service.repository.TravelmateMapper;
 
 @Service
@@ -165,6 +177,7 @@ public class TravelmateService {
             dto.setStyleNames(getStringValue(map, "styleNames"));
             dto.setTargetNames(getStringValue(map, "targetNames"));
             dto.setLikeCount(getIntValue(map, "likeCount"));
+            dto.setMemberCount(getIntValue(map, "memberCount"));
             dto.setViewCount(getIntValue(map, "viewCount"));
             dto.setStatus(getStringValue(map, "status"));
             dto.setBlindStatus(getStringValue(map, "blindStatus"));
@@ -177,17 +190,150 @@ public class TravelmateService {
         return dto;
     }
 
-    /**
-     * Map에서 String 값 추출
-     */
+    public TravelmateDetailResponse getTravelmateDetail(Long postId) {
+        try {
+            Map<String, Object> detailMap = travelmateMapper.findTravelmateDetail(postId);
+            
+            if (detailMap == null) {
+                throw new IllegalArgumentException("존재하지 않는 게시글입니다.");
+            }
+            
+            TravelmateDetailDto detail = convertDetailMapToDto(detailMap);
+            return new TravelmateDetailResponse(detail);
+            
+        } catch (Exception e) {
+            System.err.println("여행메이트 상세 조회 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("여행메이트 상세 정보를 불러오는데 실패했습니다.", e);
+        }
+    }
+
+    private TravelmateDetailDto convertDetailMapToDto(Map<String, Object> map) {
+        TravelmateDetailDto dto = new TravelmateDetailDto();
+        
+        try {
+            // 기존 필드들
+            dto.setId(getLongValue(map, "id"));
+            dto.setTitle(getStringValue(map, "title"));
+            dto.setSimpleDescription(getStringValue(map, "simpleDescription"));
+            dto.setBackgroundImage(getStringValue(map, "backgroundImage"));
+            dto.setDescription(getStringValue(map, "description")); 
+            dto.setApplicationDescription(getStringValue(map, "applicationDescription")); 
+            dto.setThumbnailImage(getStringValue(map, "thumbnailImage"));
+            dto.setCreatorNickname(getStringValue(map, "creatorNickname"));
+            dto.setCreatorId(getStringValue(map, "creatorId")); 
+            dto.setCreatorProfileImage(getStringValue(map, "creatorProfileImage")); // 추가
+            dto.setCreatorStyle(getStringValue(map, "creatorStyle"));
+            dto.setStartAt(getLocalDateTimeValue(map, "startAt"));
+            dto.setEndAt(getLocalDateTimeValue(map, "endAt"));
+            dto.setLocationNames(getStringValue(map, "locationNames"));
+            dto.setThemeNames(getStringValue(map, "themeNames"));
+            dto.setStyleNames(getStringValue(map, "styleNames"));
+            dto.setTargetNames(getStringValue(map, "targetNames"));
+            dto.setLikeCount(getIntValue(map, "likeCount"));
+            dto.setMemberCount(getIntValue(map, "memberCount"));
+            dto.setViewCount(getIntValue(map, "viewCount"));
+            dto.setStatus(getStringValue(map, "status"));
+            dto.setBlindStatus(getStringValue(map, "blindStatus"));
+            
+        } catch (Exception e) {
+            System.err.println("Detail Map을 DTO로 변환 중 오류 발생: " + map + ", 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("상세 데이터 변환에 실패했습니다.", e);
+        }
+        
+        return dto;
+    }
+
+    public String getMemberStatus(Long postId, String userId) {
+        try {
+            // 게시글 존재 여부 확인
+            if (!travelmateMapper.existsPost(postId)) {
+                throw new IllegalArgumentException("존재하지 않는 게시글입니다.");
+            }
+
+            // 멤버 신청 상태 조회
+            String applicationStatus = travelmateMapper.findMemberApplicationStatus(postId, userId);
+            
+            if (applicationStatus == null) {
+                return "NOT_MEMBER";
+            }
+            
+            switch (applicationStatus) {
+                case "PENDING":
+                    return "PENDING";
+                case "ACCEPTED":
+                    return "MEMBER";
+                case "REJECTED":
+                    return "NOT_MEMBER";
+                default:
+                    return "NOT_MEMBER";
+            }
+            
+        } catch (Exception e) {
+            System.err.println("멤버 상태 조회 중 오류 발생 - 게시글: " + postId + ", 사용자: " + userId + ", 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("멤버 상태 조회에 실패했습니다.", e);
+        }
+    }
+
+    public void joinTravelmate(Long postId, String userId, String description) {
+        try {
+            // 게시글 존재 여부 확인
+            if (!travelmateMapper.existsPost(postId)) {
+                throw new IllegalArgumentException("존재하지 않는 게시글입니다.");
+            }
+
+            // 게시글 상태 확인 (ACTIVE인지)
+            String postStatus = travelmateMapper.findPostStatus(postId);
+            if (!"ACTIVE".equals(postStatus)) {
+                throw new IllegalArgumentException("참여할 수 없는 모임입니다.");
+            }
+
+            // 본인이 작성한 게시글인지 확인
+            String creatorId = travelmateMapper.findPostCreatorId(postId);
+            if (userId.equals(creatorId)) {
+                throw new IllegalArgumentException("본인이 작성한 모임에는 신청할 수 없습니다.");
+            }
+
+            // 이미 신청했는지 확인
+            String currentStatus = travelmateMapper.findMemberApplicationStatus(postId, userId);
+            if (currentStatus != null) {
+                switch (currentStatus) {
+                    case "PENDING":
+                        throw new IllegalArgumentException("이미 참여 신청한 모임입니다.");
+                    case "ACCEPTED":
+                        throw new IllegalArgumentException("이미 참여 중인 모임입니다.");
+                    case "REJECTED":
+                        // 거절된 경우 재신청 가능하므로 기존 레코드 삭제 후 새로 생성
+                        travelmateMapper.deleteMemberApplication(postId, userId);
+                        break;
+                }
+            }
+
+            // 참여 신청 추가
+            travelmateMapper.insertMemberApplication(postId, userId, description);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("참여 신청 실패: " + e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            System.err.println("참여 신청 중 오류 발생 - 게시글: " + postId + ", 사용자: " + userId + ", 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("참여 신청에 실패했습니다.", e);
+        }
+    }
+
+    public List<TravelmateMemberDto> getTravelmateMembers(Long postId) {
+        return travelmateMapper.getTravelmateMembers(postId);
+    }
+
+
     private String getStringValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         return value != null ? value.toString() : null;
     }
 
-    /**
-     * Map에서 Long 값 추출
-     */
     private Long getLongValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value == null) return null;
@@ -207,9 +353,6 @@ public class TravelmateService {
         return null;
     }
 
-    /**
-     * Map에서 Integer 값 추출
-     */
     private Integer getIntValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value == null) return 0;
@@ -229,9 +372,6 @@ public class TravelmateService {
         return 0;
     }
 
-    /**
-     * Map에서 LocalDateTime 값 추출
-     */
     private LocalDateTime getLocalDateTimeValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value == null) return null;
@@ -250,5 +390,321 @@ public class TravelmateService {
         System.err.println("LocalDateTime 변환 실패 - key: " + key + ", value: " + value + 
                 ", type: " + value.getClass().getSimpleName());
         return null;
+    }
+
+    public List<TravelmateCommentDto> getTravelmateQuestions(Long postId) {
+        List<TravelmateCommentDto> allComments = travelmateMapper.getTravelmateComments(postId);
+        Map<Long, TravelmateCommentDto> commentMap = new HashMap<>();
+        List<TravelmateCommentDto> parentComments = new ArrayList<>();
+        
+        for (TravelmateCommentDto comment : allComments) {
+            comment.setReplies(new ArrayList<>());
+            commentMap.put(comment.getId(), comment);
+            
+            if (comment.getLevel() == 0) {
+                parentComments.add(comment);
+            }
+        }
+        
+        for (TravelmateCommentDto comment : allComments) {
+            if (comment.getLevel() == 1 && comment.getParentId() != null) {
+                TravelmateCommentDto parentComment = commentMap.get(comment.getParentId());
+                if (parentComment != null) {
+                    parentComment.getReplies().add(comment);
+                }
+            }
+        }
+        
+        for (TravelmateCommentDto parent : parentComments) {
+            parent.getReplies().sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+        }
+        
+        parentComments.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+        
+        return parentComments;
+    }
+
+    public void createComment(Long postId, String userId, String content) {
+        // 내용 유효성 검증
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("질문 내용을 입력해주세요.");
+        }
+        
+        if (content.length() > 1000) {
+            throw new IllegalArgumentException("질문은 1000자 이내로 작성해주세요.");
+        }
+        
+        // 질문 생성 (level 0, parentId null)
+        travelmateMapper.insertComment(userId, postId, content.trim(), 0, null);
+    }
+
+    public void createReply(Long postId, Long parentId, String userId, String content) {
+
+        // 부모 댓글 존재 여부 확인
+        boolean parentExists = travelmateMapper.existsComment(parentId, postId);
+        if (!parentExists) {
+            throw new IllegalArgumentException("존재하지 않는 질문입니다.");
+        }
+        
+        // 부모 댓글이 level 0인지 확인 (댓글에만 답변 가능)
+        Integer parentLevel = travelmateMapper.getCommentLevel(parentId);
+        if (parentLevel == null || parentLevel != 0) {
+            throw new IllegalArgumentException("질문에만 답변할 수 있습니다.");
+        }
+        
+        // 내용 유효성 검증
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("답변 내용을 입력해주세요.");
+        }
+        
+        if (content.length() > 1000) {
+            throw new IllegalArgumentException("답변은 1000자 이내로 작성해주세요.");
+        }
+        
+        // 답변 생성 (level 1, parentId 설정)
+        travelmateMapper.insertComment(userId, postId, content.trim(), 1, parentId);
+    }
+
+    public void updateComment(Long postId, Long commentId, String userId, String content) {
+        // 댓글 존재 여부 및 권한 확인
+        TravelmateCommentDto comment = travelmateMapper.getCommentById(commentId);
+        if (comment == null) {
+            throw new IllegalArgumentException("존재하지 않는 댓글입니다.");
+        }
+        
+        if (!comment.getMateId().equals(postId)) {
+            throw new IllegalArgumentException("잘못된 요청입니다.");
+        }
+        
+        if (!comment.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("댓글 수정 권한이 없습니다.");
+        }
+        
+        if (comment.getIsDeleted()) {
+            throw new IllegalArgumentException("삭제된 댓글은 수정할 수 없습니다.");
+        }
+        
+        if ("BLINDED".equals(comment.getBlindStatus())) {
+            throw new IllegalArgumentException("블라인드 처리된 댓글은 수정할 수 없습니다.");
+        }
+        
+        // 내용 유효성 검증
+        if (content == null || content.trim().isEmpty()) {
+            throw new IllegalArgumentException("댓글 내용을 입력해주세요.");
+        }
+        
+        if (content.length() > 1000) {
+            throw new IllegalArgumentException("댓글은 1000자 이내로 작성해주세요.");
+        }
+        
+        // 댓글 수정
+        travelmateMapper.updateComment(commentId, content.trim());
+    }
+
+    public void deleteComment(Long postId, Long commentId, String userId) {
+        // 댓글 존재 여부 및 권한 확인
+        TravelmateCommentDto comment = travelmateMapper.getCommentById(commentId);
+        if (comment == null) {
+            throw new IllegalArgumentException("존재하지 않는 댓글입니다.");
+        }
+        
+        if (!comment.getMateId().equals(postId)) {
+            throw new IllegalArgumentException("잘못된 요청입니다.");
+        }
+        
+        if (!comment.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("댓글 삭제 권한이 없습니다.");
+        }
+        
+        if (comment.getIsDeleted()) {
+            throw new IllegalArgumentException("이미 삭제된 댓글입니다.");
+        }
+        
+        // 대댓글이 있는 경우 확인
+        int replyCount = travelmateMapper.getReplyCount(commentId);
+        if (replyCount > 0 && comment.getLevel() == 0) {
+            // 부모 댓글에 답변이 있는 경우 내용만 변경하고 삭제 표시
+            travelmateMapper.softDeleteCommentWithReplies(commentId);
+        } else {
+            // 답변이 없거나 답변 자체인 경우 완전 소프트 삭제
+            travelmateMapper.softDeleteComment(commentId);
+        }
+    }
+
+    @Transactional
+    public void updateTravelmate(Long postId, TravelmateUpdateRequest request, String currentUserId) {
+        // 1. 모임 존재 여부 및 권한 확인
+        Travelmate existingTravelmate = travelmateMapper.findById(postId);
+        if (existingTravelmate == null) {
+            throw new IllegalArgumentException("존재하지 않는 모임입니다.");
+        }
+        
+        if (!existingTravelmate.getCreatorId().equals(currentUserId)) {
+            throw new IllegalArgumentException("모임 수정 권한이 없습니다.");
+        }
+
+        // 2. 모임 기본 정보 업데이트
+        TravelmateUpdateDto updateDto = TravelmateUpdateDto.builder()
+            .id(postId)
+            .title(request.getTitle())
+            .simpleDescription(request.getSimpleDescription())
+            .description(request.getDescription())
+            .applicationDescription(request.getApplicationDescription())
+            .backgroundImage(request.getBackgroundImage())
+            .thumbnailImage(request.getThumbnailImage())
+            .startAt(LocalDateTime.parse(request.getStartAt() + "T00:00:00"))
+            .endAt(LocalDateTime.parse(request.getEndAt() + "T23:59:59"))
+            .updatedAt(LocalDateTime.now())
+            .build();
+            
+        travelmateMapper.updateTravelmate(updateDto);
+
+        // 3. 기존 연관 데이터 삭제
+        travelmateMapper.deleteTravelmateLocations(postId);
+        travelmateMapper.deleteTravelmateThemes(postId);
+        travelmateMapper.deleteTravelmateStyles(postId);
+
+        // 4. 연관 데이터 등록
+        // 지역 등록
+        if (request.getLocationIds() != null && !request.getLocationIds().isEmpty()) {
+            for (String locationId : request.getLocationIds()) {
+                String[] parts = locationId.split("-");
+                if (parts.length == 2) {
+                    String countryId = parts[0];  // "ALB"
+                    int cityId = Integer.parseInt(parts[1]);       // "34" 
+                travelmateMapper.insertTravelmateLocation(postId, countryId, cityId);
+                }
+            }
+        }
+
+        // 대상 등록
+        if (request.getTargetIds() != null && !request.getTargetIds().isEmpty()) {
+            for (Long themeId : request.getTargetIds()) {
+                travelmateMapper.insertTravelmateTheme(postId, themeId);
+            }
+        }
+
+        // 테마 등록
+        if (request.getThemeIds() != null && !request.getThemeIds().isEmpty()) {
+            for (Long themeId : request.getThemeIds()) {
+                travelmateMapper.insertTravelmateTheme(postId, themeId);
+            }
+        }
+
+        // 스타일 등록
+        if (request.getStyleIds() != null && !request.getStyleIds().isEmpty()) {
+            for (Character styleId : request.getStyleIds()) {
+                travelmateMapper.insertTravelmateStyle(postId, styleId);
+            }
+        }
+    }
+
+    @Transactional
+    public Long createTravelmate(TravelmateCreateRequest request, String currentUserId) {
+        // 1. 입력값 검증
+        validateCreateRequest(request);
+
+        // 2. 모임 기본 정보 생성
+        System.out.println("=== 모임 생성 시작 ===");
+        TravelmateCreateDto createDto = TravelmateCreateDto.builder()
+            .title(request.getTitle())
+            .simpleDescription(request.getSimpleDescription())
+            .description(request.getDescription())
+            .applicationDescription(request.getApplicationDescription())
+            .backgroundImage(request.getBackgroundImage())
+            .thumbnailImage(request.getThumbnailImage())
+            .creatorId(currentUserId)
+            .startAt(LocalDateTime.parse(request.getStartAt() + "T00:00:00"))
+            .endAt(LocalDateTime.parse(request.getEndAt() + "T23:59:59"))
+            .status("ACTIVE")
+            .blindStatus("VISIBLE")
+            .likeCount(0)
+            .memberCount(1)  // 생성자 포함
+            .viewCount(0)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .build();
+            
+        System.out.println("=== 모임 생성 배경:  ==="+createDto.getBackgroundImage());
+        // 3. 모임 생성
+        travelmateMapper.insertTravelmate(createDto);
+        Long travelmateId = createDto.getId(); // MyBatis에서 생성된 ID 반환
+        System.out.println("=== 모임 생성 만듬 ===");
+
+        // 4. 연관 데이터 등록
+        // 지역 등록
+        if (request.getLocationIds() != null && !request.getLocationIds().isEmpty()) {
+            for (String locationId : request.getLocationIds()) {
+                String[] parts = locationId.split("-");
+                if (parts.length == 2) {
+                    String countryId = parts[0];  // "ALB"
+                    int cityId = Integer.parseInt(parts[1]);       // "34" 
+                travelmateMapper.insertTravelmateLocation(travelmateId, countryId, cityId);
+                }
+            }
+        }
+        System.out.println("=== 모임 생성 지역 등록 ===");
+
+        // 대상 등록
+        if (request.getTargetIds() != null && !request.getTargetIds().isEmpty()) {
+            for (Long themeId : request.getTargetIds()) {
+                travelmateMapper.insertTravelmateTheme(travelmateId, themeId);
+            }
+        }
+        System.out.println("=== 모임 생성 대상 등록 ===");
+
+        // 테마 등록
+        if (request.getThemeIds() != null && !request.getThemeIds().isEmpty()) {
+            for (Long themeId : request.getThemeIds()) {
+                travelmateMapper.insertTravelmateTheme(travelmateId, themeId);
+            }
+        }
+        System.out.println("=== 모임 생성 테마 등록 ===");
+
+        // 스타일 등록
+        if (request.getStyleIds() != null && !request.getStyleIds().isEmpty()) {
+            for (Character styleId : request.getStyleIds()) {
+                travelmateMapper.insertTravelmateStyle(travelmateId, styleId);
+            }
+        }
+        System.out.println("=== 모임 생성 스타일 등록 ===");
+
+        boolean isCreator = true;
+        // 5. 생성자를 멤버로 자동 등록
+        travelmateMapper.insertTravelmateMember(travelmateId, currentUserId, isCreator);
+        System.out.println("=== 모임 생성 멤버 등록 ===");
+        return travelmateId;
+    }
+
+
+
+     private void validateCreateRequest(TravelmateCreateRequest request) {
+        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("모임 제목은 필수입니다.");
+        }
+        if (request.getSimpleDescription() == null || request.getSimpleDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("모임 한마디는 필수입니다.");
+        }
+        if (request.getDescription() == null || request.getDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("모임 설명은 필수입니다.");
+        }
+        if (request.getApplicationDescription() == null || request.getApplicationDescription().trim().isEmpty()) {
+            throw new IllegalArgumentException("모임 신청 안내 메시지는 필수입니다.");
+        }
+        if (request.getBackgroundImage() == null || request.getBackgroundImage().trim().isEmpty()) {
+            throw new IllegalArgumentException("배경 이미지는 필수입니다.");
+        }
+        if (request.getThumbnailImage() == null || request.getThumbnailImage().trim().isEmpty()) {
+            throw new IllegalArgumentException("썸네일 이미지는 필수입니다.");
+        }
+        if (request.getStartAt() == null || request.getStartAt().trim().isEmpty()) {
+            throw new IllegalArgumentException("여행 시작일은 필수입니다.");
+        }
+        if (request.getEndAt() == null || request.getEndAt().trim().isEmpty()) {
+            throw new IllegalArgumentException("여행 종료일은 필수입니다.");
+        }
+        if (request.getLocationIds() == null || request.getLocationIds().isEmpty()) {
+            throw new IllegalArgumentException("지역은 최소 1개 이상 선택해야 합니다.");
+        }
     }
 }

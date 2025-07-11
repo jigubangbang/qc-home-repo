@@ -65,6 +65,7 @@
             tp.status,
             
             COALESCE(like_counts.like_count, 0) AS likeCount,
+            COALESCE(member_counts.member_count, 0) AS memberCount,
             
             <!-- 지역 정보 -->
             GROUP_CONCAT(DISTINCT CONCAT(c.name, ' ', ci.city_name) SEPARATOR ', ') AS locationNames,
@@ -107,6 +108,13 @@
             FROM travelmate_like
             GROUP BY mate_id
         ) like_counts ON tp.id = like_counts.mate_id
+
+        LEFT JOIN (
+            SELECT group_id AS mate_id, COUNT(*) AS member_count
+            FROM group_user
+            WHERE group_type = 'TRAVELMATE'
+            GROUP BY group_id
+        ) member_counts ON tp.id = member_counts.mate_id
         
         WHERE tp.is_public = true
         
@@ -334,4 +342,336 @@
         WHERE id = #{postId} AND is_public = true AND blind_status = 'VISIBLE'
     </select>
 
+    <select id="findTravelmateDetail" resultType="java.util.Map">
+        SELECT DISTINCT
+            tp.id,
+            tp.title,
+            tp.simple_description AS simpleDescription,
+            tp.description,
+            tp.application_description AS applicationDescription,
+            tp.thumbnail_image AS thumbnailImage,
+            tp.background_image AS backgroundImage,
+            u.user_id AS creatorId,
+            u.nickname AS creatorNickname,
+            u.profile_image AS creatorProfileImage,
+            ts.label AS creatorStyle,
+            tp.start_at AS startAt,
+            tp.end_at AS endAt,
+            tp.view_count AS viewCount,
+            tp.status,
+            tp.blind_status AS blindStatus,
+            
+            COALESCE(like_counts.like_count, 0) AS likeCount,
+            COALESCE(member_counts.member_count, 0) AS memberCount,
+            
+            <!-- 지역 정보 -->
+            GROUP_CONCAT(DISTINCT CONCAT(c.name, ' ', ci.city_name) SEPARATOR ', ') AS locationNames,
+            
+            <!-- 테마 정보 (THEME_만) -->
+            GROUP_CONCAT(DISTINCT CASE WHEN tt.code LIKE 'THEME_%' THEN tt.label END SEPARATOR ', ') AS themeNames,
+            
+            <!-- 스타일 정보 -->
+            GROUP_CONCAT(DISTINCT style.label SEPARATOR ', ') AS styleNames,
+            
+            <!-- 타겟 정보 -->
+            (SELECT GROUP_CONCAT(DISTINCT target_theme.label SEPARATOR ', ')
+            FROM travelmate_theme tmt_target
+            JOIN travel_theme target_theme ON tmt_target.theme_id = target_theme.id
+            WHERE tmt_target.mate_id = tp.id 
+            AND target_theme.code LIKE 'TARGET_%') AS targetNames
+
+        FROM travelmate_post tp
+        JOIN user u ON tp.creator_id = u.user_id
+        LEFT JOIN travel_style ts ON u.travel_style_id = ts.id
+        
+        <!-- 지역 조인 -->
+        LEFT JOIN travelmate_region tr ON tp.id = tr.mate_id
+        LEFT JOIN country c ON tr.country_id = c.id
+        LEFT JOIN city ci ON tr.city_id = ci.id
+        
+        <!-- 테마 조인 -->
+        LEFT JOIN travelmate_theme tmt ON tp.id = tmt.mate_id
+        LEFT JOIN travel_theme tt ON tmt.theme_id = tt.id
+        
+        <!-- 스타일 조인 -->
+        LEFT JOIN travelmate_style tms ON tp.id = tms.mate_id
+        LEFT JOIN travel_style style ON tms.style_id = style.id
+        
+        <!-- 좋아요 수 계산 -->
+        LEFT JOIN (
+            SELECT mate_id, COUNT(*) AS like_count
+            FROM travelmate_like
+            GROUP BY mate_id
+        ) like_counts ON tp.id = like_counts.mate_id
+        
+        <!-- 멤버수 계산 -->
+        LEFT JOIN (
+            SELECT group_id AS mate_id, COUNT(*) AS member_count
+            FROM group_user
+            WHERE group_type = 'TRAVELMATE'
+            GROUP BY group_id
+        ) member_counts ON tp.id = member_counts.mate_id
+        
+        WHERE tp.id = #{postId}
+        AND tp.is_public = true
+        
+        GROUP BY tp.id, tp.title, tp.simple_description, tp.description, tp.application_description,
+                tp.thumbnail_image, tp.background_image, u.user_id, u.nickname, u.profile_image, ts.label, 
+                tp.start_at, tp.end_at, tp.view_count, tp.status, tp.blind_status,
+                like_counts.like_count, member_counts.member_count
+    </select>
+
+    <select id="findMemberApplicationStatus" resultType="string">
+        SELECT status
+        FROM travelmate_application
+        WHERE mate_id = #{postId} AND user_id = #{userId}
+    </select>
+
+    <select id="findPostStatus" resultType="string">
+        SELECT status
+        FROM travelmate_post
+        WHERE id = #{postId} AND is_public = true
+    </select>
+
+    <select id="findPostCreatorId" resultType="string">
+        SELECT creator_id
+        FROM travelmate_post
+        WHERE id = #{postId} AND is_public = true
+    </select>
+
+    <insert id="insertMemberApplication">
+        INSERT INTO travelmate_application (mate_id, user_id, status, application_comment, applied_at)
+        VALUES (#{postId}, #{userId}, 'PENDING', #{description}, NOW())
+    </insert>
+
+    <delete id="deleteMemberApplication">
+        DELETE FROM travelmate_application
+        WHERE mate_id = #{postId} AND user_id = #{userId}
+    </delete>
+
+    <select id="getTravelmateMembers" resultType="com.jigubangbang.com_service.model.TravelmateMemberDto">
+        SELECT 
+            u.user_id as userId,
+            u.nickname,
+            ts.label as travelStyle,
+            u.bio,
+            u.profile_image as profileImage
+        FROM group_user gu
+        INNER JOIN user u ON gu.user_id = u.user_id
+        LEFT JOIN travel_style ts ON u.travel_style_id=ts.id
+        WHERE gu.group_type = 'TRAVELMATE'
+        AND gu.group_id = #{postId}
+        ORDER BY gu.joined_at ASC
+    </select>
+
+    <select id="getTravelmateComments" resultType="com.jigubangbang.com_service.model.TravelmateCommentDto">
+        SELECT 
+            tc.id,
+            tc.user_id as userId,
+            u.nickname,
+            u.profile_image as profileImage,
+            tc.mate_id as mateId,
+            tc.content,
+            tc.level,
+            tc.parent_id as parentId,
+            DATE_FORMAT(tc.created_at, '%Y-%m-%d %H:%i:%s') as createdAt,
+            DATE_FORMAT(tc.updated_at, '%Y-%m-%d %H:%i:%s') as updatedAt,
+            tc.blind_status as blindStatus,
+            tc.is_deleted as isDeleted
+        FROM travelmate_comment tc
+        INNER JOIN user u ON tc.user_id = u.user_id
+        WHERE tc.mate_id = #{postId}
+        ORDER BY tc.created_at ASC
+    </select>
+
+    <insert id="insertComment">
+        INSERT INTO travelmate_comment (
+            user_id,
+            mate_id,
+            content,
+            level,
+            parent_id,
+            created_at,
+            updated_at,
+            blind_status,
+            is_deleted
+        ) VALUES (
+            #{userId},
+            #{mateId},
+            #{content},
+            #{level},
+            #{parentId},
+            NOW(),
+            NOW(),
+            'VISIBLE',
+            false
+        )
+    </insert>
+
+    <select id="existsComment" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM travelmate_comment
+        WHERE id = #{commentId}
+        AND mate_id = #{mateId}
+        AND is_deleted = false
+    </select>
+
+    <select id="getCommentLevel" resultType="Integer">
+        SELECT level
+        FROM travelmate_comment
+        WHERE id = #{commentId}
+        AND is_deleted = false
+    </select>
+
+    <select id="getCommentById" resultType="com.jigubangbang.com_service.model.TravelmateCommentDto">
+        SELECT 
+            id,
+            user_id as userId,
+            mate_id as mateId,
+            content,
+            level,
+            parent_id as parentId,
+            blind_status as blindStatus,
+            is_deleted as isDeleted
+        FROM travelmate_comment
+        WHERE id = #{commentId}
+    </select>
+
+    <update id="updateComment">
+        UPDATE travelmate_comment
+        SET content = #{content},
+            updated_at = NOW()
+        WHERE id = #{commentId}
+    </update>
+
+    <update id="softDeleteComment">
+        UPDATE travelmate_comment
+        SET is_deleted = true,
+            updated_at = NOW()
+        WHERE id = #{commentId}
+    </update>
+
+    <update id="softDeleteCommentWithReplies">
+        UPDATE travelmate_comment
+        SET content = '삭제된 댓글입니다.',
+            is_deleted = true,
+            updated_at = NOW()
+        WHERE id = #{commentId}
+    </update>
+
+    <select id="getReplyCount" resultType="int">
+        SELECT COUNT(*)
+        FROM travelmate_comment
+        WHERE parent_id = #{parentId}
+        AND is_deleted = false
+    </select>
+
+    <!-- 모임 기본 정보 업데이트 -->
+    <update id="updateTravelmate" parameterType="com.jigubangbang.com_service.model.TravelmateUpdateDto">
+        UPDATE travelmate_post SET
+            title = #{title},
+            simple_description = #{simpleDescription},
+            description = #{description},
+            application_description = #{applicationDescription},
+            background_image = #{backgroundImage},
+            thumbnail_image = #{thumbnailImage},
+            start_at = #{startAt},
+            end_at = #{endAt},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 기존 연관 데이터 삭제 -->
+    <delete id="deleteTravelmateLocations">
+        DELETE FROM travelmate_region WHERE mate_id = #{travelmateId}
+    </delete>
+
+    <delete id="deleteTravelmateThemes">
+        DELETE FROM travelmate_theme WHERE mate_id = #{travelmateId}
+    </delete>
+
+    <delete id="deleteTravelmateStyles">
+        DELETE FROM travelmate_style WHERE mate_id = #{travelmateId}
+    </delete>
+
+    <!-- 새로운 연관 데이터 등록 -->
+    <insert id="insertTravelmateLocation">
+        INSERT INTO travelmate_region (mate_id, country_id, city_id)
+        VALUES (#{travelmateId}, #{countryId}, #{cityId})
+    </insert>
+
+    <insert id="insertTravelmateTheme">
+        INSERT INTO travelmate_theme (mate_id, theme_id)
+        VALUES (#{travelmateId}, #{themeId})
+    </insert>
+
+    <insert id="insertTravelmateStyle">
+        INSERT INTO travelmate_style (mate_id, style_id)
+        VALUES (#{travelmateId}, #{styleId})
+    </insert>
+
+    <!-- 모임 조회 (권한 확인용) -->
+    <select id="findById" resultType="com.jigubangbang.com_service.model.Travelmate">
+        SELECT 
+            id,
+            creator_id as creatorId,
+            title,
+            status,
+            created_at as createdAt
+        FROM travelmate_post 
+        WHERE id = #{id}
+    </select>
+
+    <!-- 모임 생성 -->
+    <insert id="insertTravelmate" parameterType="com.jigubangbang.com_service.model.TravelmateCreateDto" 
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO travelmate_post (
+            title,
+            simple_description,
+            description,
+            application_description,
+            background_image,
+            thumbnail_image,
+            creator_id,
+            start_at,
+            end_at,
+            status,
+            blind_status,
+            view_count,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{title},
+            #{simpleDescription},
+            #{description},
+            #{applicationDescription},
+            #{backgroundImage},
+            #{thumbnailImage},
+            #{creatorId},
+            #{startAt},
+            #{endAt},
+            #{status},
+            #{blindStatus},
+            #{viewCount},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <!-- 멤버 등록 (생성자 자동 등록) -->
+    <insert id="insertTravelmateMember">
+        INSERT INTO group_user (
+            group_type,
+            group_id, 
+            user_id, 
+            is_creator, 
+            joined_at
+        ) VALUES (
+            'TRAVELMATE',
+            #{travelmateId}, 
+            #{userId}, 
+            #{isCreator}, 
+            NOW()
+        )
+    </insert>
 </mapper>

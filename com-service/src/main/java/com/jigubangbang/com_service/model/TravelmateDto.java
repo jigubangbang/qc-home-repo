@@ -22,6 +22,7 @@ public class TravelmateDto {
     private String styleNames;         // "디테일플래너, 슬로우로컬러" 형태
     private String targetNames;        // "여성 전용 모임, 20대 모임" 형태
     private int likeCount;
+    private int memberCount;
     private int viewCount;
     private String status;
     private String blindStatus;
