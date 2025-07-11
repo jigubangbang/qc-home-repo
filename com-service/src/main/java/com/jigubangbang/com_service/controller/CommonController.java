@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.jigubangbang.com_service.model.ChatRoomDto;
 import com.jigubangbang.com_service.model.CreateReportRequest;
 import com.jigubangbang.com_service.service.CommonService;
 import com.jigubangbang.com_service.service.S3Service;
@@ -77,6 +78,43 @@ public class CommonController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(Map.of("error", "Upload failed"));
+        }
+    }
+
+    //채팅방 id 가져오기
+    @PostMapping("/chat")
+    public ResponseEntity<Map<String, Object>> getChatRoom(@RequestBody Map<String, Object> request) {
+        try {
+            String groupType = (String) request.get("groupType");
+            Object groupIdObj = request.get("groupId");
+            
+            // groupId 타입 변환
+            Long groupId = null;
+            if (groupIdObj instanceof Integer) {
+                groupId = ((Integer) groupIdObj).longValue();
+            } else if (groupIdObj instanceof Long) {
+                groupId = (Long) groupIdObj;
+            } else if (groupIdObj instanceof String) {
+                groupId = Long.parseLong((String) groupIdObj);
+            }
+            
+            if (groupType == null || groupId == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "groupType과 groupId는 필수입니다."));
+            }
+            
+            // 채팅방 조회 또는 생성
+            ChatRoomDto chatRoom = commonService.getChatRoom(groupType, groupId);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "chatRoomId", chatRoom.getId(),
+                "message", "채팅방 정보를 성공적으로 가져왔습니다."
+            ));
+            
+        } catch (Exception e) {
+            System.err.println("채팅방 조회 실패: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of("error", "채팅방을 불러오는데 실패했습니다."));
         }
     }
 }

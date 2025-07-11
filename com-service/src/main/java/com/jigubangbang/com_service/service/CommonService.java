@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.jigubangbang.com_service.model.ChatRoomDto;
 import com.jigubangbang.com_service.model.CreateReportRequest;
 import com.jigubangbang.com_service.model.Report;
 import com.jigubangbang.com_service.repository.CommonMapper;
@@ -48,5 +49,44 @@ public class CommonService {
 
     public String getUserProfile(String userId){
         return commonMapper.getUserProfile(userId);
+    }
+
+    public ChatRoomDto getChatRoom(String groupType, Long groupId) {
+        try {
+            // 기존 채팅방 조회
+            ChatRoomDto chatRoom = commonMapper.findChatRoomByGroup(groupType, groupId);
+            
+            if (chatRoom == null) {
+                // 채팅방이 없으면 새로 생성
+                commonMapper.insertChatRoom(groupType, groupId);
+                
+                // 생성된 채팅방 다시 조회
+                chatRoom = commonMapper.findChatRoomByGroup(groupType, groupId);
+                
+                if (chatRoom == null) {
+                    throw new RuntimeException("채팅방 생성에 실패했습니다.");
+                }
+            }
+            
+            return chatRoom;
+            
+        } catch (Exception e) {
+            System.err.println("채팅방 조회/생성 중 오류 발생 - groupType: " + groupType + ", groupId: " + groupId + ", 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("채팅방을 불러오는데 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 채팅방 존재 여부 확인
+     */
+    public boolean existsChatRoom(String groupType, Long groupId) {
+        try {
+            return commonMapper.existsChatRoom(groupType, groupId);
+        } catch (Exception e) {
+            System.err.println("채팅방 존재 여부 확인 중 오류 발생 - groupType: " + groupType + ", groupId: " + groupId + ", 오류: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 }

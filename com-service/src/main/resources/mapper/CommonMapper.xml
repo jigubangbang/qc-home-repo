@@ -43,4 +43,33 @@
         WHERE user.user_id = #{userId}
     </select>
 
+    <select id="findChatRoomByGroup" resultType="com.jigubangbang.com_service.model.ChatRoomDto">
+        SELECT 
+            id,
+            group_type AS groupType,
+            group_id AS groupId
+        FROM chat_room
+        WHERE group_type = #{groupType}
+        AND group_id = #{groupId}
+    </select>
+    
+    <!-- 채팅방 생성 -->
+    <insert id="insertChatRoom">
+        INSERT INTO chat_room (
+            group_type,
+            group_id
+        ) VALUES (
+            #{groupType},
+            #{groupId},
+        )
+    </insert>
+    
+    <!-- 채팅방 존재 여부 확인 -->
+    <select id="existsChatRoom" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM chat_room
+        WHERE group_type = #{groupType}
+        AND group_id = #{groupId}
+    </select>
+
 </mapper>
