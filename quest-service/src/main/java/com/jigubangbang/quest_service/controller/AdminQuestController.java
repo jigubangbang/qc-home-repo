@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.quest_service.model.AdminQuestDetailDto;
-import com.jigubangbang.quest_service.model.AdminQuestDto;
+import com.jigubangbang.quest_service.model.BadgeIdCheckResponse;
 import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.service.AdminQuestService;
 
@@ -47,6 +47,7 @@ public class AdminQuestController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
 
     @GetMapping("/detail/{quest_id}")
     public ResponseEntity<Map<String, Object>> getQuestDetail(@PathVariable int quest_id) {
@@ -89,23 +90,51 @@ public class AdminQuestController {
         }
     }
 
+    @GetMapping("/detail/{quest_id}/badges")
+    public ResponseEntity<Map<String, Object>> getQuestBadges(
+            @PathVariable int quest_id) {
+        
+        try {
+            Map<String, Object> result = adminQuestService.getQuestBadges(quest_id);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "퀘스트 뱃지 목록을 불러오는 중 오류가 발생했습니다.");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    @GetMapping("/quests/check-quest-id/{questId}")
+    public ResponseEntity<BadgeIdCheckResponse> checkQuestIdAvailability(@PathVariable int questId) {
+        try {
+            BadgeIdCheckResponse response = adminQuestService.checkBadgeIdAvailability(questId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            BadgeIdCheckResponse errorResponse = new BadgeIdCheckResponse();
+            errorResponse.setAvailable(false);
+            errorResponse.setSuggestedId(null);
+            errorResponse.setMessage("ID 확인 중 오류가 발생했습니다.");
+            return ResponseEntity.ok(errorResponse);
+        }
+    }
     
     //퀘스트 생성
-    @PostMapping("/quest")
+    @PostMapping("/quests")
     public ResponseEntity<QuestDto> createQuest(@RequestBody QuestDto quest){
         QuestDto createdQuest = adminQuestService.createQuest(quest);
         return ResponseEntity.ok(createdQuest);
     }
     
     //퀘스트 수정
-    @PutMapping("/quest/{quest_id}")
+    @PutMapping("/quests/{quest_id}")
     public ResponseEntity<QuestDto> updateQuest(@PathVariable int quest_id, @RequestBody QuestDto quest){
         QuestDto updatedQuest = adminQuestService.updateQuest(quest_id, quest);
         return ResponseEntity.ok(updatedQuest);
     }
 
     //퀘스트 삭제
-    @DeleteMapping("/quest/{quest_id}")
+    @DeleteMapping("/quests/{quest_id}")
     public ResponseEntity<Void> deleteQuest(@PathVariable int quest_id){
         adminQuestService.deleteQuest(quest_id);
         return ResponseEntity.noContent().build();
@@ -123,12 +152,18 @@ public class AdminQuestController {
 
     //퀘스트 인증 상세 조회
     
-    //reject -> 삭제로
     @PutMapping("/quests-certi/{quest_user_id}/reject")
-    public ResponseEntity<Map<String, Object>> rejectQuest(@PathVariable int quest_user_id){
+    public ResponseEntity<Map<String, Object>> rejectQuest(
+        @PathVariable int quest_user_id,
+        @RequestBody Map<String, Object> requestBody
+    ){
+        
         Map<String, Object> response = new HashMap<>();
         
-        adminQuestService.rejectQuest(quest_user_id);
+        int xp = (Integer) requestBody.get("xp");
+        String user_id = (String) requestBody.get("user_id");
+        int quest_id = (Integer) requestBody.get("quest_id");
+        adminQuestService.rejectQuest(quest_user_id, quest_id, xp, user_id);
         response.put("success", true);
         response.put("message", "퀘스트 인증 취소 완료");
         return ResponseEntity.ok(response);

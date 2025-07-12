@@ -68,6 +68,8 @@ public class UserQuestService {
         questUser.setQuest_id(quest_id);
         questUser.setStatus("IN_PROGRESS");
         questUser.setStarted_at(new Timestamp(System.currentTimeMillis()));
+
+        System.out.println(questUser.getUser_id());
         userQuestMapper.insertQuestUser(questUser);
     }
 
@@ -78,7 +80,6 @@ public class UserQuestService {
         userQuestMapper.reChallengeQuestUser(params);
     }
 
-    //#NeedToChange
     public UserJourneyDto getUserJourney(String user_id){
         return userQuestMapper.getUserJourney(user_id);
     }
@@ -144,7 +145,7 @@ public class UserQuestService {
             }
         }
         return result;
-        //#NeedToChange
+        //#NeedToChange알림
     }
 
     private List<Integer> checkAndAwardBadges(String user_id, int completed_quest_id){

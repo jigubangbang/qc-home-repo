@@ -22,6 +22,8 @@ public class QuestDto {
     
     private String icon;
 
+    private String description;
+
     //join
     private int count_in_progress;
     private int count_completed;

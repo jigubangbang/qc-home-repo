@@ -7,14 +7,17 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.jigubangbang.quest_service.model.AdminQuestDetailDto;
 import com.jigubangbang.quest_service.model.AdminQuestDto;
 import com.jigubangbang.quest_service.model.AdminQuestUserDto;
+import com.jigubangbang.quest_service.model.BadgeIdCheckResponse;
+import com.jigubangbang.quest_service.model.BadgeQuestDto;
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestDto;
+import com.jigubangbang.quest_service.model.SimpleBadgeDto;
 import com.jigubangbang.quest_service.repository.AdminQuestMapper;
-import com.jigubangbang.quest_service.repository.QuestMapper;
 
 @Service
 public class AdminQuestService {
@@ -71,6 +74,16 @@ public class AdminQuestService {
         
         return questDetail;
     }
+
+    public Map<String, Object> getQuestBadges(int quest_id){
+        Map<String, Object> result = new HashMap<>();
+        List<SimpleBadgeDto> badges = adminQuestMapper.selectQuestBadges(quest_id);
+        int totalCount = adminQuestMapper.selectQuestBadgesCount(quest_id);
+        
+        result.put("questBadges", badges);
+        result.put("totalCount", totalCount); 
+        return result;
+    }
     
     public Map<String, Object> getQuestUsers(int quest_id, int pageNum, int limit) {
         Map<String, Object> result = new HashMap<>();
@@ -99,10 +112,6 @@ public class AdminQuestService {
         result.put("totalCount", totalCount);
         result.put("currentPage", pageNum);
         result.put("totalPages", totalPages);
-        result.put("pageSize", limit);
-        result.put("hasNext", pageNum < totalPages);
-        result.put("hasPrevious", pageNum > 1);
-        
         return result;
     }
 
@@ -114,10 +123,10 @@ public class AdminQuestService {
     public QuestDto updateQuest(int quest_id, QuestDto quest){
         Map<String, Object> params = new HashMap<>();
         params.put("quest_id", quest_id);
-        params.put("type", quest.getType());
         params.put("category", quest.getCategory());
         params.put("title", quest.getTitle());
         params.put("difficulty", quest.getDifficulty());
+        params.put("description", quest.getDescription());
         params.put("xp", quest.getXp());
         params.put("isSeasonal", quest.getIs_seasonal());
         params.put("seasonStart", quest.getSeason_start());
@@ -128,12 +137,26 @@ public class AdminQuestService {
         return quest;
     }
 
-    public void deleteQuest(int quest_id){
+    @Transactional
+    public void deleteQuest(int quest_id) {
+    try {
+        if (!adminQuestMapper.existsQuest(quest_id)) {
+            throw new IllegalArgumentException("존재하지 않는 퀘스트입니다: " + quest_id);
+        }
+        
+        List<Integer> questUserIds = adminQuestMapper.getQuestUserIds(quest_id);
+        for (Integer quest_user_id : questUserIds) {
+            adminQuestMapper.deleteQuestImage(quest_user_id);
+        }
+        adminQuestMapper.deleteQuestUser(quest_id);
+        adminQuestMapper.deleteBadgeQuest(quest_id);
         adminQuestMapper.deleteQuest(quest_id);
+    } catch (Exception e) {
+        throw new RuntimeException("퀘스트 삭제에 실패했습니다: " + e.getMessage());
     }
+}
 
     public Map<String, Object> getQuestCertiList(int pageNum, String sortOption, String status){
-        //#NeedToChange
         int questCertiPerPage = 100;
         int offset=(pageNum-1)*questCertiPerPage;
 
@@ -177,39 +200,88 @@ public class AdminQuestService {
     }
 
 
-    //userQuest로 이동
-    // public Map<String, Object> approveQuest(int quest_user_id){
-    //     Map<String, Object> result = new HashMap<>();
-    //     result.put("badgeAwarded", false);
-    //     result.put("awardedBadges", new ArrayList<>());
-
-    //     adminQuestMapper.updateQuestUserApprove(quest_user_id);
-
-    //     QuestCerti questCerti = adminQuestMapper.getQuestCerti(quest_user_id);
-    //     QuestDto quest = questMapper.selectQuestById(questCerti.getQuest_id());
+    @Transactional
+    public void rejectQuest(int quest_user_id, int quest_id, int xp, String user_id) {
+        String currentStatus = adminQuestMapper.getQuestUserStatus(quest_user_id);
+        if (!"COMPLETED".equals(currentStatus)) {
+            throw new IllegalStateException("완료된 퀘스트만 취소할 수 있습니다");
+        }
         
-    //     if (quest != null && quest.getXp() > 0 ){
-    //         Map<String, Object> params = new HashMap<>();
-    //         params.put("user_id", questCerti.getUser_id());
-    //         params.put("xp", quest.getXp());
-    //         adminQuestMapper.updateUserXp(params);
-    //     }
+        try {
+            adminQuestMapper.updateQuestUserReject(quest_user_id);
+            adminQuestMapper.deleteQuestImage(quest_user_id);
 
-    //     if (questCerti != null){
-    //         List<Integer> awardedBadges = checkAndAwardBadges(questCerti.getUser_id(), questCerti.getQuest_id());
-    //         if (!awardedBadges.isEmpty()){
-    //             result.put("badgeAwarded", true);
-    //             result.put("awardedBadges", awardedBadges);
-    //         }
-    //     }
-    //     return result;
-    // }
+            List<Integer> relatedBadgeIds = adminQuestMapper.getBadgeIdsByQuestId(quest_id);
 
-    
+            for (int badge_id : relatedBadgeIds){
+                boolean alreadyHasBadge = false;
 
-    public void rejectQuest(int quest_user_id){
-        adminQuestMapper.updateQuestUserReject(quest_user_id);
+                if (adminQuestMapper.checkUserHasBadge(user_id, badge_id)>0){
+                    alreadyHasBadge = true;
+                }
 
-        //xp / 레벨 낮추는 과정
+                if(alreadyHasBadge){
+                    Map<String, Object> params2 = new HashMap<>();
+                    params2.put("badge_id", badge_id);
+                    params2.put("user_id", user_id);
+                    int isBadgeRemoved = adminQuestMapper.deleteBadgeUser(params2);
+
+                    if(isBadgeRemoved > 0){
+                        System.out.println("뱃지 없어짐1!!!");
+                        //#NeedToChange알림
+                    }
+                }
+            }
+ 
+            Map<String, Object> params = new HashMap<>();
+            params.put("xp", -xp);
+            params.put("user_id", user_id);
+            
+            adminQuestMapper.updateUserXp(params);
+            adminQuestMapper.updateUserLevel(user_id);
+        } catch (Exception e) {
+            throw new RuntimeException("퀘스트 인증 취소 중 오류 발생", e);
+        }
+    }
+
+    public BadgeIdCheckResponse checkBadgeIdAvailability(int questId) {
+        BadgeIdCheckResponse response = new BadgeIdCheckResponse();
+        
+        try {
+            // 해당 ID가 이미 존재하는지 확인
+            boolean exists = adminQuestMapper.existsQuestById(questId);
+            
+            if (!exists) {
+                // 사용 가능한 경우
+                response.setAvailable(true);
+                response.setSuggestedId(null);
+                response.setMessage("사용 가능한 ID입니다.");
+            } else {
+                // 사용 불가능한 경우, 추천 ID 찾기
+                Integer suggestedId = findNextAvailableId();
+                response.setAvailable(false);
+                response.setSuggestedId(suggestedId);
+                response.setMessage("이미 사용 중인 ID입니다.");
+            }
+            
+        } catch (Exception e) {
+            // 예외 발생 시 안전하게 사용 불가능으로 처리
+            response.setAvailable(false);
+            response.setSuggestedId(null);
+            response.setMessage("ID 확인 중 오류가 발생했습니다.");
+        }
+        
+        return response;
+    }
+
+    private Integer findNextAvailableId() {
+        try {
+            // 1부터 시작해서 사용 가능한 가장 작은 ID 찾기
+            Integer nextId = adminQuestMapper.findNextAvailableId();
+            return nextId != null ? nextId : 1; // null인 경우 1 반환
+        } catch (Exception e) {
+            // 에러 발생 시 null 반환
+            return null;
+        }
     }
 }

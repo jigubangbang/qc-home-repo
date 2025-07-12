@@ -57,7 +57,7 @@
                 ORDER BY q.created_at DESC
             </when>
             <otherwise>
-                ORDER BY q.created_at ASC
+                ORDER BY q.id ASC
             </otherwise>
         </choose>
         LIMIT #{limit} OFFSET #{offset}
@@ -121,6 +121,25 @@
           AND status = 'GIVEN_UP'
     </select>
 
+    <select id="selectQuestBadges" parameterType="int" resultType="com.jigubangbang.quest_service.model.SimpleBadgeDto">
+        SELECT 
+            bq.id,
+            bq.badge_id,
+            bq.quest_id,
+            b.kor_title,
+            b.eng_title,
+            b.icon
+        FROM badge_quest bq
+        JOIN badge b ON b.id = bq.badge_id
+        WHERE bq.quest_id = #{quest_id}
+        ORDER BY bq.badge_id ASC
+    </select>
+
+    <select id="selectQuestBadgesCount" parameterType="int" resultType="int">
+        SELECT COUNT(*)
+        FROM badge_quest 
+        WHERE quest_id = #{quest_id}
+    </select>
 
     <select id="selectQuestUsers" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestUserDto">
         SELECT 
@@ -154,17 +173,17 @@
 
     <!-- 퀘스트 CURD -->
     <insert id="createQuest" parameterType="com.jigubangbang.quest_service.model.QuestDto">
-        INSERT INTO quest (type, category, title, difficulty, xp, description, is_seasonal, season_start, season_end, status, created_at)
-        VALUES (#{type}, #{category}, #{title}, #{difficulty}, #{description}, #{xp}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
+        INSERT INTO quest (id, category, title, difficulty, xp, description, is_seasonal, season_start, season_end, status, created_at)
+        VALUES (#{id},  #{category}, #{title}, #{difficulty}, #{xp}, #{description}, #{is_seasonal}, #{season_start}, #{season_end}, #{status}, NOW())
     </insert>
 
     <update id="updateQuest" parameterType="map">
         UPDATE quest
-            SET type = #{type},
-                category = #{category},
+            SET category = #{category},
                 title = #{title},
                 difficulty = #{difficulty},
                 xp = #{xp},
+                description = #{description},
                 is_seasonal = #{isSeasonal},
                 season_start = #{seasonStart},
                 season_end = #{seasonEnd},
@@ -261,18 +280,54 @@
         ORDER BY id ASC
     </select>
 
-
     <update id="updateQuestUserReject" parameterType="int">
         UPDATE quest_user 
-        SET status = 'IN_PROGRESS', completed_at = null
+        SET status = 'IN_PROGRESS', completed_at = null, description = null
         WHERE id = #{quest_user_id}
     </update>
+
+    <select id="getQuestUserStatus" parameterType="int" resultType="string">
+        SELECT status 
+        FROM quest_user 
+        WHERE id = #{quest_user_id}
+    </select>
+
+    <delete id="deleteQuestImage" parameterType="int">
+        DELETE FROM quest_image WHERE quest_user_id = #{quest_user_id}
+    </delete>
+
+    <delete id="deleteBadgeUser" parameterType="map">
+        DELETE FROM badge_user WHERE badge_id = #{badge_id} and user_id=#{user_id}
+    </delete>
 
     <update id="updateUserXp" parameterType="map">
         UPDATE user 
         SET xp = xp + #{xp}
         WHERE user_id = #{user_id}
     </update>
+
+    <select id="existsQuest" parameterType="int" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM quest 
+        WHERE id = #{quest_id}
+    </select>
+
+    <select id="getQuestUserIds" parameterType="int" resultType="int">
+        SELECT id as quest_user_id
+        FROM quest_user 
+        WHERE quest_id = #{quest_id}
+        ORDER BY id
+    </select>
+
+    <delete id="deleteQuestUser" parameterType="int">
+        DELETE FROM quest_user 
+        WHERE quest_id = #{quest_id}
+    </delete>
+
+    <delete id="deleteBadgeQuest" parameterType="int">
+        DELETE FROM badge_quest 
+        WHERE quest_id = #{quest_id}
+    </delete>
 
     <update id="updateUserLevel" parameterType="string">
     UPDATE user 
@@ -391,6 +446,26 @@
         SELECT quest_id 
         FROM badge_quest 
         WHERE badge_id = #{badge_id}
+    </select>
+
+    <select id="existsQuestById" parameterType="int" resultType="boolean">
+        SELECT 
+            CASE WHEN COUNT(*) &gt; 0 THEN TRUE ELSE FALSE END
+        FROM quest 
+        WHERE id = #{questId}
+    </select>
+
+    <select id="findNextAvailableId" resultType="Integer">
+        SELECT 
+            CASE 
+                WHEN NOT EXISTS (SELECT 1 FROM quest WHERE id = 1) THEN 1
+                ELSE (
+                    SELECT MIN(t1.id + 1) as next_id
+                    FROM quest t1
+                    LEFT JOIN quest t2 ON t1.id + 1 = t2.id
+                    WHERE t2.id IS NULL
+                )
+            END as next_id
     </select>
 
     <select id="getCompletedQuestsByUserAndBadge" parameterType="map" resultType="int">

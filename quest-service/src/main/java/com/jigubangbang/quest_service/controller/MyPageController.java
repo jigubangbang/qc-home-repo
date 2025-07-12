@@ -15,6 +15,7 @@ import com.jigubangbang.quest_service.model.SimpleUserDto;
 import com.jigubangbang.quest_service.service.QuestService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 
@@ -26,16 +27,13 @@ public class MyPageController {
 
     @GetMapping("/my-page")
     public ResponseEntity<Map<String, Object>> getUserPage(
-        @RequestParam(required=false) String user_id
-    ) {
-        if (user_id == null || user_id.isEmpty()){
-            //#NeedToChange
-            //현재 로그인한 유저의 아이디
-            user_id = "aaa";
-        }
-
+            @RequestParam(required = false) String user_id,
+            @RequestHeader(value = "User-Id", required = false) String headerUserId) {
         try {
-            Map<String, Object> result = questService.getUserPageData(user_id);
+            // user_id가 null이면 헤더에서 받아온 userId 사용
+            String targetUserId = (user_id != null) ? user_id : headerUserId;
+            
+            Map<String, Object> result = questService.getUserPageData(targetUserId);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -73,21 +71,20 @@ public class MyPageController {
 
     @GetMapping("/user-graph")
     public ResponseEntity<Map<String, Object>> getMyUserGraph(
+        @RequestParam("user_id") String userId
     ){
-        //#NeedToChange
-        //현재 로그인한 유저의 아이디
-        String user_id = "aaa";
         List<SimpleUserDto> userData = questService.getUserGraph();
-        int rank = questService.getUserRank(user_id);
+        int rank = questService.getUserRank(userId);
         int countUser = questService.getCountUser();
 
         Map<String, Object> response = new HashMap<>();
         response.put("userData", userData);
-
         response.put("rank", rank);
         response.put("countUser", countUser);
-        response.put("user", user_id);
+        response.put("user", userId);
+
         return ResponseEntity.ok(response);
     }
+
     
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -42,67 +43,49 @@ public class UserQuestController {
 
     //quest 조회
     @GetMapping("/detail/{quest_id}")
-    public ResponseEntity<QuestModalDto> getQuestDetail(@PathVariable("quest_id") int quest_id) {
-         //#NeedToChange
-        //session에서 user id 받아오기
-        String current_user_id = "aaa";
-
-        QuestModalDto quest = userQuestService.getQuestModalById(current_user_id, quest_id);
+    public ResponseEntity<QuestModalDto> getQuestDetail(
+        @PathVariable("quest_id") int quest_id,
+        @RequestHeader("User-Id") String userId
+    ) {
+        QuestModalDto quest = userQuestService.getQuestModalById(userId, quest_id);
         if (quest == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(quest);
-        }
+    }
 
-    @GetMapping("/list")
+     @GetMapping("/list")
     public ResponseEntity<Map<String, Object>> getUserQuestList(
         @RequestParam(defaultValue="1") int pageNum,
         @RequestParam(defaultValue="0") int category,
         @RequestParam(required=false) String sortOption,
         @RequestParam(required=false) String difficulty,
         @RequestParam(required=false) String search,
-        @RequestParam(defaultValue = "10") int limit
+        @RequestParam(defaultValue = "10") int limit,
+        @RequestHeader("User-Id") String userId
     ){
-        //#NeedToChange 실제 로그인한 사용자 ID 가져오기
-        String userId = "aaa"; // 현재는 하드코딩, 실제로는 JWT에서 추출
-        
         Map<String, Object> result = userQuestService.getUserQuests(userId, pageNum, category, sortOption, difficulty, search, limit);
         return ResponseEntity.ok(result);
     }
 
     //퀘스트 도전
-    @PostMapping("/challenge/{quest_id}")
+     @PostMapping("/challenge/{quest_id}")
     public ResponseEntity<Map<String, Object>> challengeQuest(
-        HttpServletRequest request,
-        @PathVariable("quest_id") int quest_id
+        @PathVariable("quest_id") int quest_id,
+        @RequestHeader("User-Id") String userId
     ){
-        //#NeedToChange
-        //session에서 user id 받아오기
-        String user_id = "aaa";
         Map<String, Object> response = new HashMap<>();
 
-        //중복 체크
-        if (userQuestService.countUserQuest(user_id, quest_id)>0){
-            response.put("success", false);
-            response.put("message", "이미 도전 중인 퀘스트입니다");
-            return ResponseEntity.ok(response);
-        }
-
-
-        userQuestService.challengeQuest(user_id, quest_id);
+        userQuestService.challengeQuest(userId, quest_id);
         response.put("success", true);
         response.put("message", "퀘스트 도전 완료");
         return ResponseEntity.ok(response);
     }
-
     //퀘스트 도전
-    @PostMapping("/{quest_user_id}/season-end")
+     @PostMapping("/{quest_user_id}/season-end")
     public ResponseEntity<Map<String, Object>> seasonEndQuest(
-        HttpServletRequest request,
         @PathVariable("quest_user_id") int quest_user_id
     ){
-        //#NeedToChange
-        //session에서 user id 받아오기
         Map<String, Object> response = new HashMap<>();
         userQuestService.seasonEndQuest(quest_user_id);
         response.put("success", true);
@@ -110,52 +93,48 @@ public class UserQuestController {
         return ResponseEntity.ok(response);
     }
 
+
     //재도전
-    @PostMapping("/reChallenge/{quest_id}")
+     @PostMapping("/reChallenge/{quest_id}")
     public ResponseEntity<Map<String, Object>> reChallengeQuest(
-        HttpServletRequest request,
-        @PathVariable("quest_id") int quest_id
+        @PathVariable("quest_id") int quest_id,
+        @RequestHeader("User-Id") String userId
     ){
-        //#NeedToChange
-        //session에서 user id 받아오기
-        String user_id = "aaa";
         Map<String, Object> response = new HashMap<>();
 
         //중복 체크
-        if (userQuestService.countUserQuest(user_id, quest_id)>0){
+        if (userQuestService.countUserQuest(userId, quest_id)>0){
             response.put("success", false);
             response.put("message", "이미 도전 중인 퀘스트입니다");
             return ResponseEntity.ok(response);
         }
 
-        userQuestService.reChallengeQuest(user_id, quest_id);
+        userQuestService.reChallengeQuest(userId, quest_id);
         response.put("success", true);
         response.put("message", "퀘스트 재도전 완료");
         return ResponseEntity.ok(response);
     }
 
-    //My Quest Journey stats id, nickname, profile, 퀘스트 완료 수, 레벨
-    //#NeedToChange 
     @GetMapping("/journey")
-    public ResponseEntity<UserJourneyDto> getUserJourney(HttpServletRequest request){
-        //#NeedToChange
-        String user_id = "aaa";
-        UserJourneyDto journey = userQuestService.getUserJourney(user_id);
+    public ResponseEntity<UserJourneyDto> getUserJourney(
+        @RequestHeader("User-Id") String userId
+    ){
+        UserJourneyDto journey = userQuestService.getUserJourney(userId);
         return ResponseEntity.ok(journey);
     }
 
     //퀘스트 목록 조회
     @GetMapping("/detail")
-    public ResponseEntity<List<QuestUserDto>> getUserQuestList(HttpServletRequest  request,
+    public ResponseEntity<List<QuestUserDto>> getUserQuestList(
         @RequestParam(required=false) String user_id,
         @RequestParam(required=false) String order,
-        @RequestParam(required=false) String status
+        @RequestParam(required=false) String status,
+        @RequestHeader("User-Id") String userId
     ){
-        //#NeedToChange 
         //user_id가 null 값이라면
         if (user_id == null || user_id.isEmpty()){
             //현재 로그인한 유저의 아이디
-            user_id = "aaa";
+            user_id = userId;
         }
 
         String orderColumn = null;
@@ -175,7 +154,6 @@ public class UserQuestController {
         List<QuestUserDto> questList = userQuestService.getUserQuestList(user_id, orderColumn, statusFilter);
         return ResponseEntity.ok(questList);
     }
-
     //퀘스트 인증 조회
     @GetMapping("/certificate/{quest_user_id}")
     public ResponseEntity<QuestCerti> getQuestCerti(
@@ -266,5 +244,6 @@ public class UserQuestController {
         response.put("message", "퀘스트를 포기했습니다.");
         return ResponseEntity.ok(response);
     }
-
 }
+
+

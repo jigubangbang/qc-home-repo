@@ -2,7 +2,6 @@ package com.jigubangbang.quest_service.model;
 import lombok.Getter;
 import lombok.Setter;
 
-//#NeedToChange
 @Setter
 @Getter
 public class UserJourneyDto {

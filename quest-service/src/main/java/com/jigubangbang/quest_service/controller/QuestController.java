@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.jigubangbang.quest_service.model.QuestDto;
 import com.jigubangbang.quest_service.model.QuestPublicModalDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
 import com.jigubangbang.quest_service.service.QuestService;
@@ -49,7 +47,6 @@ public class QuestController {
         return ResponseEntity.ok(quest);
         }
 
-    //#NeedToChange
     @GetMapping("/{quest_id}/participants")
     public ResponseEntity<Map<String, Object>> getQuestParticipants(
         @PathVariable("quest_id") int quest_id
