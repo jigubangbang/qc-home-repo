@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.jigubangbang.com_service.model.ChatRoomDto;
 import com.jigubangbang.com_service.model.CreateReportRequest;
+import com.jigubangbang.com_service.model.MyTravelerDataDto;
 import com.jigubangbang.com_service.service.CommonService;
 import com.jigubangbang.com_service.service.S3Service;
 
@@ -121,4 +122,13 @@ public class CommonController {
             return ResponseEntity.internalServerError().body(Map.of("error", "채팅방을 불러오는데 실패했습니다."));
         }
     }
+
+    //마이페이지
+    @GetMapping("/user-com/my-traveler")
+    public ResponseEntity<MyTravelerDataDto> getMyTravelerData(
+            @RequestHeader("User-Id") String currentUserId) {
+        
+        MyTravelerDataDto data = commonService.getMyTravelerData(currentUserId);
+        return ResponseEntity.ok(data);
+    } 
 }
