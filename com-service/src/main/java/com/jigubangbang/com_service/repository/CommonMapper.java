@@ -62,4 +62,7 @@ public interface CommonMapper {
     
     // 정보 공유방의 테마 ID 리스트 조회
     List<Integer> getTravelInfoThemeIds(@Param("travelInfoId") Integer travelInfoId);
+
+    boolean isUserJoinedTravelInfo(@Param("travelInfoId") Integer travelInfoId, @Param("currentUserId") String currentUserId);
+
 }

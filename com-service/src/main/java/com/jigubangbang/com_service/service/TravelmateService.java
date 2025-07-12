@@ -18,6 +18,7 @@ import com.jigubangbang.com_service.model.TargetDto;
 import com.jigubangbang.com_service.model.ThemeDto;
 import com.jigubangbang.com_service.model.TravelStyleDto;
 import com.jigubangbang.com_service.model.Travelmate;
+import com.jigubangbang.com_service.model.TravelmateApplicationDto;
 import com.jigubangbang.com_service.model.TravelmateCommentDto;
 import com.jigubangbang.com_service.model.TravelmateCreateDto;
 import com.jigubangbang.com_service.model.TravelmateCreateRequest;
@@ -26,6 +27,7 @@ import com.jigubangbang.com_service.model.TravelmateDetailResponse;
 import com.jigubangbang.com_service.model.TravelmateDto;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
+import com.jigubangbang.com_service.model.TravelmatePostDto;
 import com.jigubangbang.com_service.model.TravelmateResponseDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateRequest;
@@ -767,6 +769,42 @@ public class TravelmateService {
             
         } catch (Exception e) {
             throw new RuntimeException("여행자모임 삭제 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    @Transactional
+    public void processApplication(Long travelmateId, Integer applicationId, String action, String currentUserId) {
+        // 1. 해당 여행 모임의 호스트인지 확인
+        TravelmatePostDto travelmate = travelmateMapper.getTravelmateById(travelmateId);
+        if (travelmate == null) {
+            throw new RuntimeException("존재하지 않는 여행 모임입니다.");
+        }
+        
+        if (!travelmate.getCreatorId().equals(currentUserId)) {
+            throw new RuntimeException("해당 모임의 호스트만 신청을 처리할 수 있습니다.");
+        }
+        
+        // 2. 신청 정보 확인
+        TravelmateApplicationDto application = travelmateMapper.getApplicationById(applicationId);
+        if (application == null) {
+            throw new RuntimeException("존재하지 않는 신청입니다.");
+        }
+        
+        if (!application.getMateId().equals(travelmateId)) {
+            throw new RuntimeException("해당 모임의 신청이 아닙니다.");
+        }
+        
+        if (!application.getStatus().equals("PENDING")) {
+            throw new RuntimeException("이미 처리된 신청입니다.");
+        }
+        
+        // 3. 신청 상태 업데이트
+        String newStatus = action.equals("accept") ? "ACCEPTED" : "REJECTED";
+        travelmateMapper.updateApplicationStatus(applicationId, newStatus, currentUserId);
+        
+        // 4. 수락인 경우 그룹 멤버에 추가
+        if (action.equals("accept")) {
+            travelmateMapper.addGroupMember(application.getUserId(), "TRAVELMATE", travelmateId);
         }
     }
 }

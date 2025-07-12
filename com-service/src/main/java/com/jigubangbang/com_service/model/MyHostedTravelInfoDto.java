@@ -25,4 +25,5 @@ public class MyHostedTravelInfoDto {
     private Integer memberCount;
     private String latestMessage;
     private Integer chatCount;
+    private Boolean isJoined;
 }

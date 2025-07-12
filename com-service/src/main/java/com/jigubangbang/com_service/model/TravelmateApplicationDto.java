@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TravelmateApplicationDto {
     private Integer id;
+    private Long mateId;
     private String userId;
     private String userNickname;
     private String applicationComment;

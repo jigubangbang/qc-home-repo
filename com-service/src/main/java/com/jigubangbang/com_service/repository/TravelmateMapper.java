@@ -12,10 +12,12 @@ import com.jigubangbang.com_service.model.TargetDto;
 import com.jigubangbang.com_service.model.ThemeDto;
 import com.jigubangbang.com_service.model.TravelStyleDto;
 import com.jigubangbang.com_service.model.Travelmate;
+import com.jigubangbang.com_service.model.TravelmateApplicationDto;
 import com.jigubangbang.com_service.model.TravelmateCommentDto;
 import com.jigubangbang.com_service.model.TravelmateCreateDto;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
+import com.jigubangbang.com_service.model.TravelmatePostDto;
 import com.jigubangbang.com_service.model.TravelmateResponseDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateDto;
 
@@ -126,4 +128,19 @@ public interface TravelmateMapper {
     int deleteTravelmateLikes(Long travelmateId);
     int deleteTravelmateApplications(Long travelmateId);
     int deleteTravelmateRegions(Long travelmateId);
+
+    //수락/거절
+    TravelmateApplicationDto getApplicationById(@Param("applicationId") Integer applicationId);
+    void updateApplicationStatus(@Param("applicationId") Integer applicationId, 
+                            @Param("status") String status, 
+                            @Param("responderId") String responderId);
+
+    TravelmatePostDto getTravelmateById(@Param("travelmateId") Long travelmateId);
+
+    // 그룹 멤버 추가
+    void addGroupMember(@Param("userId") String userId, 
+                    @Param("groupType") String groupType, 
+                    @Param("groupId") Long groupId);
+
+
 }

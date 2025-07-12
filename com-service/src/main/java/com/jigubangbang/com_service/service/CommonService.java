@@ -134,6 +134,11 @@ public class CommonService {
             List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
             travelInfo.setThemeIds(themeIds);
         }
+        for (MyJoinedTravelInfoDto travelInfo : joinedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+            travelInfo.setIsJoined(true); // 참여 중인 정보방은 항상 true
+        }
         data.setJoinedTravelInfos(joinedTravelInfos);
 
         // 7. 내가 좋아요를 누른 정보 공유방
@@ -143,6 +148,13 @@ public class CommonService {
             List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
             travelInfo.setThemeIds(themeIds);
         }
+        for (MyLikedTravelInfoDto travelInfo : likedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+            // 참가 여부 확인
+            boolean isJoined = commonMapper.isUserJoinedTravelInfo(travelInfo.getId(), currentUserId);
+            travelInfo.setIsJoined(isJoined);
+        }
         data.setLikedTravelInfos(likedTravelInfos);
 
         // 8. 내가 주최 중인 정보 공유방
@@ -151,6 +163,11 @@ public class CommonService {
         for (MyHostedTravelInfoDto travelInfo : hostedTravelInfos) {
             List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
             travelInfo.setThemeIds(themeIds);
+        }
+        for (MyHostedTravelInfoDto travelInfo : hostedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+            travelInfo.setIsJoined(true); // 주최한 정보방은 항상 true
         }
         data.setHostedTravelInfos(hostedTravelInfos);
 

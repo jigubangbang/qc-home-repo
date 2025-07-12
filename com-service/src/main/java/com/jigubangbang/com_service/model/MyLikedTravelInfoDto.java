@@ -26,4 +26,5 @@ public class MyLikedTravelInfoDto {
     private String latestMessage;
     private Integer chatCount;
     private LocalDateTime likedAt;
+    private Boolean isJoined;
 }

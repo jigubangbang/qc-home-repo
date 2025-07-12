@@ -20,6 +20,7 @@ public class TravelInfoResponseDto {
     private String blindStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Boolean isJoined;
 
     private List<Integer> themeIds;
     private String themeNames;

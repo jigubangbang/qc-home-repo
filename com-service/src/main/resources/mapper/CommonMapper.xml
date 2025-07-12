@@ -126,6 +126,7 @@
     <select id="getTravelmateApplications" resultType="com.jigubangbang.com_service.model.TravelmateApplicationDto">
         SELECT 
             ta.id,
+            ta.mate_id AS mateId,
             ta.user_id AS userId,
             u.nickname AS userNickname,
             ta.application_comment AS applicationComment,
@@ -473,6 +474,14 @@
         FROM travel_info_theme
         WHERE travel_info_id = #{travelInfoId}
         ORDER BY theme_id
+    </select>
+
+    <select id="isUserJoinedTravelInfo" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM group_user
+        WHERE group_type = 'TRAVELINFO'
+        AND group_id = #{travelInfoId}
+        AND user_id = #{currentUserId}
     </select>
     
 </mapper>

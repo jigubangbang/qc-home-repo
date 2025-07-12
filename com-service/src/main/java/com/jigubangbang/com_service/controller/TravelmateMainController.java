@@ -419,4 +419,29 @@ public class TravelmateMainController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    @PostMapping("/user-com/travelmate/{travelmateId}/application/{applicationId}/{action}")
+    public ResponseEntity<Map<String, Object>> processApplication(
+        @PathVariable Long travelmateId,
+        @PathVariable Integer applicationId,  // Long → Integer
+        @PathVariable String action,
+        @RequestHeader("User-Id") String currentUserId) {
+        
+        try {
+            if (!action.equals("accept") && !action.equals("reject")) {
+                return ResponseEntity.badRequest().body(Map.of("error", "잘못된 액션입니다."));
+            }
+            
+            travelmateService.processApplication(travelmateId, applicationId, action, currentUserId);
+            
+            String message = action.equals("accept") ? "신청을 수락했습니다." : "신청을 거절했습니다.";
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", message
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

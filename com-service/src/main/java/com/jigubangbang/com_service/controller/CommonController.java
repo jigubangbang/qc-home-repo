@@ -87,7 +87,7 @@ public class CommonController {
     }
 
     //채팅방 id 가져오기
-    @PostMapping("/chat")
+    @PostMapping("/com/chat")
     public ResponseEntity<Map<String, Object>> getChatRoom(@RequestBody Map<String, Object> request) {
         try {
             String groupType = (String) request.get("groupType");

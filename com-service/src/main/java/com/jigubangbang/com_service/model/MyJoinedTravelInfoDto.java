@@ -26,4 +26,5 @@ public class MyJoinedTravelInfoDto {
     private String latestMessage;
     private Integer chatCount;
     private LocalDateTime joinedAt;
+    private Boolean isJoined;
 }
