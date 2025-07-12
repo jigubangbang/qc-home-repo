@@ -157,7 +157,6 @@ public class AdminQuestService {
 }
 
     public Map<String, Object> getQuestCertiList(int pageNum, String sortOption, String status){
-        //#NeedToChange
         int questCertiPerPage = 100;
         int offset=(pageNum-1)*questCertiPerPage;
 
@@ -229,7 +228,7 @@ public class AdminQuestService {
 
                     if(isBadgeRemoved > 0){
                         System.out.println("뱃지 없어짐1!!!");
-                        //#NeedToChange 여기서 뱃지 뺏긴 알림이 오는 거임
+                        //#NeedToChange알림
                     }
                 }
             }
