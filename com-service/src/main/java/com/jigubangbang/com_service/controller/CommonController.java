@@ -24,7 +24,7 @@ import com.jigubangbang.com_service.service.S3Service;
 import jakarta.annotation.Resource;
 
 @RestController
-@RequestMapping("/com")
+@RequestMapping
 public class CommonController {
     @Autowired
     private CommonService commonService;
@@ -32,7 +32,7 @@ public class CommonController {
     @Resource
     private S3Service s3Service;
 
-    @PostMapping("/report")
+    @PostMapping("/user-com/report")
     public ResponseEntity<Map<String, Object>> createReport(
             @RequestBody CreateReportRequest request,
             @RequestHeader("User-Id") String reporterId) {
@@ -48,7 +48,7 @@ public class CommonController {
         }
     }
 
-    @GetMapping("/user-profile/{userId}")
+    @GetMapping("/com/user-profile/{userId}")
     public ResponseEntity<String> getUserProfile(@PathVariable String userId){
         try{
             String profile =  commonService.getUserProfile(userId);
@@ -58,7 +58,7 @@ public class CommonController {
         }
     }
 
-    @PostMapping("/upload-image/{type}")
+    @PostMapping("/com/upload-image/{type}")
     public ResponseEntity<Map<String, Object>> uploadAdminImage(
         @RequestParam("file") MultipartFile file, 
         @PathVariable("type") String fileType) {

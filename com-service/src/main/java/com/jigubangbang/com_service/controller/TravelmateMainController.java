@@ -36,13 +36,13 @@ import com.jigubangbang.com_service.service.TravelmateService;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
-@RequestMapping("/com")
+@RequestMapping
 public class TravelmateMainController {
     @Autowired
     private TravelmateService travelmateService;
 
     //국가 목록 조회
-    @GetMapping("/countries")
+    @GetMapping("/com/countries")
     public ResponseEntity<List<CountryDto>> getAllCountries() {
         try {
             List<CountryDto> countries = travelmateService.getAllCountries();
@@ -53,7 +53,7 @@ public class TravelmateMainController {
     }
 
     //도시 목록 조회
-    @GetMapping("/cities/{countryId}")
+    @GetMapping("/com/cities/{countryId}")
     public ResponseEntity<List<CityDto>> getCitiesByCountryId(@PathVariable String countryId) {
         try {
             List<CityDto> cities = travelmateService.getCitiesByCountryId(countryId);
@@ -64,7 +64,7 @@ public class TravelmateMainController {
     }
 
     //filter 정보 조회
-    @GetMapping("/targets")
+    @GetMapping("/com/targets")
     public ResponseEntity<List<TargetDto>> getAllTargets() {
         try {
             List<TargetDto> targets = travelmateService.getAllTargets();
@@ -75,7 +75,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/themes")
+    @GetMapping("/com/themes")
     public ResponseEntity<List<ThemeDto>> getAllThemes() {
         try {
             List<ThemeDto> themes = travelmateService.getAllThemes();
@@ -86,7 +86,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/travel-styles")
+    @GetMapping("/com/travel-styles")
     public ResponseEntity<List<TravelStyleDto>> getAllTravelStyles() {
         try {
             List<TravelStyleDto> travelStyles = travelmateService.getAllTravelStyles();
@@ -97,7 +97,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/travelmate/list")
+    @GetMapping("/com/travelmate/list")
     public ResponseEntity<TravelmateListResponse> getTravelmateList(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(required = false) String locations,
@@ -142,7 +142,7 @@ public class TravelmateMainController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/travelmate/likes")
+    @GetMapping("/user-com/travelmate/likes")
     public ResponseEntity<LikedPostsResponse> getLikedPosts(
             @RequestHeader("User-Id") String userId) {
         
@@ -151,7 +151,7 @@ public class TravelmateMainController {
     }
 
     
-    @PostMapping("/travelmate/like/{postId}")
+    @PostMapping("/user-com/travelmate/like/{postId}")
     public ResponseEntity<Map<String, Object>> addLike(
             @PathVariable Long postId,
             @RequestHeader("User-Id") String userId) {
@@ -164,7 +164,7 @@ public class TravelmateMainController {
         }
     }
 
-    @DeleteMapping("/travelmate/like/{postId}")
+    @DeleteMapping("/user-com/travelmate/like/{postId}")
     public ResponseEntity<Map<String, Object>> removeLike(
             @PathVariable Long postId,
             @RequestHeader("User-Id") String userId) {
@@ -199,7 +199,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/travelmate/{postId}")
+    @GetMapping("/com/travelmate/{postId}")
     public ResponseEntity<TravelmateDetailResponse> getTravelmateDetail(@PathVariable Long postId) {
         try {
             TravelmateDetailResponse detail = travelmateService.getTravelmateDetail(postId);
@@ -210,7 +210,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/travelmate/{postId}/member-status")
+    @GetMapping("/user-com/travelmate/{postId}/member-status")
     public ResponseEntity<Map<String, Object>> getMemberStatus(
             @PathVariable Long postId,
             @RequestHeader("User-Id") String userId) {
@@ -224,7 +224,7 @@ public class TravelmateMainController {
         }
     }
 
-    @PostMapping("/travelmate/{postId}/join")
+    @PostMapping("/user-com/travelmate/{postId}/join")
     public ResponseEntity<Map<String, Object>> joinTravelmate(
             @PathVariable Long postId,
             @RequestBody Map<String, String> request,
@@ -244,7 +244,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/travelmate/{postId}/members")
+    @GetMapping("/com/travelmate/{postId}/members")
     public ResponseEntity<List<TravelmateMemberDto>> getTravelmateMembers(@PathVariable Long postId) {
         try {
             List<TravelmateMemberDto> members = travelmateService.getTravelmateMembers(postId);
@@ -255,7 +255,7 @@ public class TravelmateMainController {
         }
     }
 
-    @GetMapping("/travelmate/{postId}/comments")
+    @GetMapping("/com/travelmate/{postId}/comments")
     public ResponseEntity<List<TravelmateCommentDto>> getTravelmateQuestions(@PathVariable Long postId) {
         try {
             List<TravelmateCommentDto> questions = travelmateService.getTravelmateQuestions(postId);
@@ -267,7 +267,7 @@ public class TravelmateMainController {
     }
 
     
-    @PostMapping("/travelmate/{postId}/comments")
+    @PostMapping("/user-com/travelmate/{postId}/comments")
     public ResponseEntity<Map<String, Object>> createQuestion(
             @PathVariable Long postId,
             @RequestBody CreateCommentRequest request,
@@ -282,7 +282,7 @@ public class TravelmateMainController {
     }
 
     // 답변 등록
-    @PostMapping("/travelmate/{postId}/comments/{parentId}/replies")
+    @PostMapping("/user-com/travelmate/{postId}/comments/{parentId}/replies")
     public ResponseEntity<Map<String, Object>> createReply(
             @PathVariable Long postId,
             @PathVariable Long parentId,
@@ -297,7 +297,7 @@ public class TravelmateMainController {
         }
     }
 
-    @PutMapping("/travelmate/{postId}/comments/{commentId}")
+    @PutMapping("/user-com/travelmate/{postId}/comments/{commentId}")
     public ResponseEntity<Map<String, Object>> updateComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
@@ -314,7 +314,7 @@ public class TravelmateMainController {
 
 
     // 댓글 삭제 (소프트 삭제)
-    @DeleteMapping("/travelmate/{postId}/comments/{commentId}")
+    @DeleteMapping("/user-com/travelmate/{postId}/comments/{commentId}")
     public ResponseEntity<Map<String, Object>> deleteComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
@@ -328,7 +328,7 @@ public class TravelmateMainController {
         }
     }
 
-    @PutMapping("/travelmate/{postId}")
+    @PutMapping("/user-com/travelmate/{postId}")
     public ResponseEntity<Map<String, Object>> updateTravelmate(
             @PathVariable("postId") Long postId,
             @RequestBody TravelmateUpdateRequest request,
@@ -352,7 +352,7 @@ public class TravelmateMainController {
         }
     }
 
-    @PostMapping("/travelmate")
+    @PostMapping("/user-com/travelmate")
     public ResponseEntity<Map<String, Object>> createTravelmate(
             @RequestBody TravelmateCreateRequest request,
             @RequestHeader("User-Id") String userId) {
@@ -375,7 +375,7 @@ public class TravelmateMainController {
         }
     }
 
-    @DeleteMapping("/travelmate/{travelmateId}")
+    @DeleteMapping("/user-com/travelmate/{travelmateId}")
     public ResponseEntity<Map<String, Object>> deleteTravelmate(
             @PathVariable Long travelmateId,
             @RequestHeader("User-Id") String userId) {
