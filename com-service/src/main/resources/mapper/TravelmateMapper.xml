@@ -674,4 +674,83 @@
             NOW()
         )
     </insert>
+
+    <select id="selectTravelmateForDelete" parameterType="long" resultType="com.jigubangbang.com_service.model.TravelmateResponseDto">
+        SELECT 
+            id,
+            creator_id AS creatorId,
+            title,
+            simple_description AS simpleDescription,
+            description,
+            application_description AS applicationDescription,
+            background_image AS backgroundImage,
+            thumbnail_image AS thumbnailImage,
+            status,
+            start_at AS startAt,
+            end_at AS endAt,
+            created_at AS createdAt,
+            blind_status AS blindStatus
+        FROM travelmate_post 
+        WHERE id = #{travelmateId}
+    </select>
+
+    <!-- 여행자모임 삭제 (하드 삭제) -->
+    <delete id="deleteTravelmateById" parameterType="long">
+        DELETE FROM travelmate_post 
+        WHERE id = #{travelmateId}
+    </delete>
+
+    <!-- 채팅 메시지 삭제 -->
+    <delete id="deleteChatMessagesByTravelmateId" parameterType="long">
+        DELETE cm FROM chat_message cm
+        INNER JOIN chat_room cr ON cm.chat_id = cr.id
+        WHERE cr.group_type = 'TRAVELMATE' 
+          AND cr.group_id = #{travelmateId}
+    </delete>
+
+    <!-- 그룹 회원 삭제 (채팅 참여자) -->
+    <delete id="deleteGroupUsersByTravelmateId" parameterType="long">
+        DELETE FROM group_user 
+        WHERE group_type = 'TRAVELMATE' 
+          AND group_id = #{travelmateId}
+    </delete>
+
+    <!-- 채팅방 삭제 -->
+    <delete id="deleteChatRoomByTravelmateId" parameterType="long">
+        DELETE FROM chat_room 
+        WHERE group_type = 'TRAVELMATE' 
+          AND group_id = #{travelmateId}
+    </delete>
+
+    <!-- 자식 댓글 삭제 (대댓글) -->
+    <delete id="deleteTravelmateChildComments" parameterType="long">
+        DELETE FROM travelmate_comment 
+        WHERE mate_id = #{travelmateId} 
+          AND parent_id IS NOT NULL
+    </delete>
+
+    <!-- 부모 댓글 삭제 (원댓글) -->
+    <delete id="deleteTravelmateParentComments" parameterType="long">
+        DELETE FROM travelmate_comment 
+        WHERE mate_id = #{travelmateId} 
+          AND parent_id IS NULL
+    </delete>
+
+    <!-- 좋아요 정보 삭제 -->
+    <delete id="deleteTravelmateLikes" parameterType="long">
+        DELETE FROM travelmate_like 
+        WHERE mate_id = #{travelmateId}
+    </delete>
+
+    <!-- 신청 정보 삭제 -->
+    <delete id="deleteTravelmateApplications" parameterType="long">
+        DELETE FROM travelmate_application 
+        WHERE mate_id = #{travelmateId}
+    </delete>
+
+    <!-- 지역 정보 삭제 -->
+    <delete id="deleteTravelmateRegions" parameterType="long">
+        DELETE FROM travelmate_region 
+        WHERE mate_id = #{travelmateId}
+    </delete>
 </mapper>

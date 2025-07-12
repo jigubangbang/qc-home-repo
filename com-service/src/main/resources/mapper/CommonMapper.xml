@@ -60,7 +60,7 @@
             group_id
         ) VALUES (
             #{groupType},
-            #{groupId},
+            #{groupId}
         )
     </insert>
     

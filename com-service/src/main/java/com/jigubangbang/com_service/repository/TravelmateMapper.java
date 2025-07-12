@@ -16,6 +16,7 @@ import com.jigubangbang.com_service.model.TravelmateCommentDto;
 import com.jigubangbang.com_service.model.TravelmateCreateDto;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
+import com.jigubangbang.com_service.model.TravelmateResponseDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateDto;
 
 @Mapper
@@ -113,4 +114,16 @@ public interface TravelmateMapper {
         void insertTravelmateMember(@Param("travelmateId") Long travelmateId, 
                                @Param("userId") String userId, 
                                @Param("isCreator") boolean isCreator);
+
+    //삭제
+    TravelmateResponseDto selectTravelmateForDelete(Long travelmateId);
+    int deleteTravelmateById(Long travelmateId);
+    int deleteChatMessagesByTravelmateId(Long travelmateId);
+    int deleteGroupUsersByTravelmateId(Long travelmateId);
+    int deleteChatRoomByTravelmateId(Long travelmateId);
+    int deleteTravelmateChildComments(Long travelmateId);
+    int deleteTravelmateParentComments(Long travelmateId);
+    int deleteTravelmateLikes(Long travelmateId);
+    int deleteTravelmateApplications(Long travelmateId);
+    int deleteTravelmateRegions(Long travelmateId);
 }

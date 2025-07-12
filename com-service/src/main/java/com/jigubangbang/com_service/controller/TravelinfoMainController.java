@@ -228,4 +228,44 @@ public class TravelinfoMainController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
+
+    @DeleteMapping("/{travelinfoId}")
+    public ResponseEntity<Map<String, Object>> deleteTravelInfo(@PathVariable Long travelinfoId) {
+        try {
+            //#NeedToChange - 실제로는 authentication에서 사용자 ID를 가져와야 함
+            String currentUserId = "aaa";
+            
+            travelinfoService.deleteTravelInfo(travelinfoId, currentUserId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "정보방이 성공적으로 삭제되었습니다.");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "삭제 권한이 없습니다.");
+            
+            return ResponseEntity.status(403).body(errorResponse);
+            
+        } catch (RuntimeException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "정보방을 찾을 수 없습니다.");
+            
+            return ResponseEntity.status(404).body(errorResponse);
+            
+        } catch (Exception e) {
+            System.err.println("정보방 삭제 중 예상치 못한 오류: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "정보방 삭제에 실패했습니다: " + e.getMessage());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
 }

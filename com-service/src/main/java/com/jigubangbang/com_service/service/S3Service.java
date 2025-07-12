@@ -2,6 +2,7 @@ package com.jigubangbang.com_service.service;
 
 
 import org.springframework.beans.factory.annotation.Value; // Spring 설정값 주입용
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Service; // Spring 서비스 빈으로 등록
 import org.springframework.web.multipart.MultipartFile; // 웹에서 업로드된 파일 처리용
 
@@ -17,6 +18,7 @@ import java.util.UUID; // 파일명 중복 방지용
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
+@RefreshScope
 @Service
 public class S3Service {
 

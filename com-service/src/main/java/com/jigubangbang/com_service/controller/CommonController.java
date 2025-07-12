@@ -65,10 +65,10 @@ public class CommonController {
         @PathVariable("type") String fileType) {
         try {
             String s3Url = null;
-            if (fileType.equals("badge")){
-                s3Url = s3Service.uploadFile(file, "badge-images/");
+            if (fileType.equals("travelinfo")){
+                s3Url = s3Service.uploadFile(file, "travelinfo-images/");
             }else{
-                s3Url = s3Service.uploadFile(file, "quest-images/");
+                s3Url = s3Service.uploadFile(file, "travelmate-images/");
             }
             
             Map<String, Object> response = new HashMap<>();
@@ -76,8 +76,13 @@ public class CommonController {
             response.put("imageUrl", s3Url);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            e.printStackTrace(); 
+
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Upload failed");
+            errorResponse.put("message", e.getMessage()); 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Upload failed"));
+                    .body(errorResponse);
         }
     }
 

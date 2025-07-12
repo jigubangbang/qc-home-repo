@@ -26,14 +26,19 @@ import com.jigubangbang.com_service.model.TravelmateDetailResponse;
 import com.jigubangbang.com_service.model.TravelmateDto;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
+import com.jigubangbang.com_service.model.TravelmateResponseDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateRequest;
+import com.jigubangbang.com_service.repository.CommonMapper;
 import com.jigubangbang.com_service.repository.TravelmateMapper;
 
 @Service
 public class TravelmateService {
     @Autowired
     private TravelmateMapper travelmateMapper;
+
+    @Autowired
+    private CommonMapper commonMapper;
 
     //국가 목록 조회
     public List<CountryDto> getAllCountries() {
@@ -672,7 +677,10 @@ public class TravelmateService {
         boolean isCreator = true;
         // 5. 생성자를 멤버로 자동 등록
         travelmateMapper.insertTravelmateMember(travelmateId, currentUserId, isCreator);
-        System.out.println("=== 모임 생성 멤버 등록 ===");
+
+        //챗룸 만들기
+        commonMapper.insertChatRoom("TRAVELMATE", (Long) travelmateId);
+
         return travelmateId;
     }
 
@@ -705,6 +713,60 @@ public class TravelmateService {
         }
         if (request.getLocationIds() == null || request.getLocationIds().isEmpty()) {
             throw new IllegalArgumentException("지역은 최소 1개 이상 선택해야 합니다.");
+        }
+    }
+
+    @Transactional
+    public void deleteTravelmate(Long travelmateId, String currentUserId) {
+        // 1. 여행자모임 존재 여부 및 작성자 확인
+        TravelmateResponseDto travelmate = travelmateMapper.selectTravelmateForDelete(travelmateId);
+        if (travelmate == null) {
+            throw new RuntimeException("여행자모임을 찾을 수 없습니다. ID: " + travelmateId);
+        }
+        
+        // 2. 삭제 권한 확인 (작성자만 삭제 가능)
+        if (!travelmate.getCreatorId().equals(currentUserId)) {
+            throw new IllegalArgumentException("삭제 권한이 없습니다. 작성자만 삭제할 수 있습니다.");
+        }
+        
+        // 3. 관련 데이터 삭제 (순서 중요)
+        try {
+            // 3-1. 채팅 메시지 삭제
+            travelmateMapper.deleteChatMessagesByTravelmateId(travelmateId);
+            
+            // 3-2. 그룹 회원 삭제 (채팅 참여자)
+            travelmateMapper.deleteGroupUsersByTravelmateId(travelmateId);
+            
+            // 3-3. 채팅방 삭제
+            travelmateMapper.deleteChatRoomByTravelmateId(travelmateId);
+            
+            // 3-4. 댓글 삭제
+            travelmateMapper.deleteTravelmateChildComments(travelmateId);
+            travelmateMapper.deleteTravelmateParentComments(travelmateId);
+            
+            // 3-5. 좋아요 정보 삭제
+            travelmateMapper.deleteTravelmateLikes(travelmateId);
+            
+            // 3-6. 신청 정보 삭제
+            travelmateMapper.deleteTravelmateApplications(travelmateId);
+            
+            // 3-7. 여행 테마 삭제
+            travelmateMapper.deleteTravelmateThemes(travelmateId);
+            
+            // 3-8. 여행 스타일 삭제
+            travelmateMapper.deleteTravelmateStyles(travelmateId);
+            
+            // 3-9. 여행 지역 삭제
+            travelmateMapper.deleteTravelmateRegions(travelmateId);
+            
+            // 3-10. 여행자모임 메인 테이블 삭제
+            int deletedTravelmate = travelmateMapper.deleteTravelmateById(travelmateId);
+            if (deletedTravelmate == 0) {
+                throw new RuntimeException("여행자모임 삭제에 실패했습니다.");
+            }
+            
+        } catch (Exception e) {
+            throw new RuntimeException("여행자모임 삭제 중 오류가 발생했습니다.", e);
         }
     }
 }

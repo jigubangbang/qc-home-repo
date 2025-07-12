@@ -226,12 +226,9 @@
             thumbnail_image AS thumbnailImage,
             creator_id AS creatorId,
             blind_status AS blindStatus,
-            created_at AS createdAt,
-            updated_at AS updatedAt
+            created_at AS createdAt
         FROM travel_info
-        WHERE id = #{id}
-          AND deleted = false
-    </select>
+        WHERE id = #{id}    </select>
 
     <!-- 정보방 생성 -->
     <insert id="insertTravelInfo" parameterType="com.jigubangbang.com_service.model.TravelInfoRequestDto" useGeneratedKeys="true" keyProperty="id">
@@ -258,8 +255,7 @@
             title = #{title},
             simple_description = #{simpleDescription},
             enter_description = #{enterDescription},
-            thumbnail_image = #{thumbnailImage},
-            updated_at = NOW()
+            thumbnail_image = #{thumbnailImage}
         WHERE id = #{id}
     </update>
 
@@ -294,4 +290,55 @@
         DELETE FROM travel_info_theme
         WHERE travel_info_id = #{travelInfoId}
     </delete>
+
+    <!-- 여행정보 삭제를 위한 조회 (작성자 확인용) -->
+    <select id="selectTravelInfoForDelete" parameterType="long" resultType="com.jigubangbang.com_service.model.TravelInfoResponseDto">
+        SELECT 
+            id,
+            title,
+            simple_description AS simpleDescription,
+            enter_description AS enterDescription,
+            thumbnail_image AS thumbnailImage,
+            creator_id AS creatorId,
+            blind_status AS blindStatus,
+            created_at AS createdAt
+        FROM travel_info 
+        WHERE id = #{travelinfoId}
+          AND deleted_at IS NULL
+    </select>
+
+    <delete id="deleteTravelInfoById" parameterType="long">
+        DELETE FROM travel_info 
+        WHERE id = #{travelinfoId}
+    </delete>
+
+    <!-- 채팅 메시지 삭제 -->
+    <delete id="deleteChatMessagesByTravelInfoId" parameterType="long">
+        DELETE cm FROM chat_message cm
+        INNER JOIN chat_room cr ON cm.chat_id = cr.id
+        WHERE cr.group_type = 'TRAVELINFO' 
+          AND cr.group_id = #{travelinfoId}
+    </delete>
+
+    <!-- 채팅 참여자 삭제 -->
+    <delete id="deleteChatParticipantsByTravelInfoId" parameterType="long">
+        DELETE gu FROM group_user gu
+        INNER JOIN travel_info ti ON ti.id = gu.group_id
+        WHERE gu.group_type = 'TRAVELINFO' 
+          AND gu.group_id = #{travelinfoId}
+    </delete>
+
+    <!-- 채팅방 삭제 -->
+    <delete id="deleteChatRoomByTravelInfoId" parameterType="long">
+        DELETE FROM chat_room 
+        WHERE group_type = 'TRAVELINFO' 
+          AND group_id = #{travelinfoId}
+    </delete>
+
+    <!-- 좋아요 정보 삭제 -->
+    <delete id="deleteLikesByTravelInfoId" parameterType="long">
+        DELETE FROM travel_info_like 
+        WHERE travel_info_id = #{travelinfoId}
+    </delete>
+
 </mapper>

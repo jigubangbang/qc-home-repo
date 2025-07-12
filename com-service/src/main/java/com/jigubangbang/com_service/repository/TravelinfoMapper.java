@@ -42,4 +42,13 @@ public interface TravelinfoMapper {
     String selectThemeNamesByIds(@Param("themeIds") List<Integer> themeIds);
     void insertTravelInfoThemes(@Param("travelInfoId") Long travelInfoId, @Param("themeIds") List<Integer> themeIds);
     void deleteTravelInfoThemes(@Param("travelInfoId") Long travelInfoId);
+
+    //삭제
+    TravelInfoResponseDto selectTravelInfoForDelete(Long travelinfoId);
+    int deleteTravelInfoById(Long travelinfoId);
+    int deleteChatMessagesByTravelInfoId(Long travelinfoId);
+    int deleteChatParticipantsByTravelInfoId(Long travelinfoId);
+    int deleteChatRoomByTravelInfoId(Long travelinfoId);
+    int deleteLikesByTravelInfoId(Long travelinfoId);
+
 }

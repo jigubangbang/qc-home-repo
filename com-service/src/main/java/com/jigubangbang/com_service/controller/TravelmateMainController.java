@@ -372,38 +372,38 @@ public class TravelmateMainController {
         }
     }
 
-        @PutMapping("/travelmate/{postId}")
-        public ResponseEntity<Map<String, Object>> updateTravelmate(
-                @PathVariable("postId") Long postId,
-                @RequestBody TravelmateUpdateRequest request,
-                HttpServletRequest httpRequest) {
-            
-            try {
-                // JWT에서 사용자 ID 추출 #NeedToChange
-                //String currentUserId = JwtUtils.getUserIdFromRequest(httpRequest);
-                String currentUserId="aaa";
-                // if (currentUserId == null) {
-                //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                //         .body(Map.of("error", "로그인이 필요합니다."));
-                // }
+    @PutMapping("/travelmate/{postId}")
+    public ResponseEntity<Map<String, Object>> updateTravelmate(
+            @PathVariable("postId") Long postId,
+            @RequestBody TravelmateUpdateRequest request,
+            HttpServletRequest httpRequest) {
+        
+        try {
+            // JWT에서 사용자 ID 추출 #NeedToChange
+            //String currentUserId = JwtUtils.getUserIdFromRequest(httpRequest);
+            String currentUserId="aaa";
+            // if (currentUserId == null) {
+            //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            //         .body(Map.of("error", "로그인이 필요합니다."));
+            // }
 
-                // 모임 수정
-                travelmateService.updateTravelmate(postId, request, currentUserId);
-                
-                Map<String, Object> response = new HashMap<>();
-                response.put("message", "모임이 성공적으로 수정되었습니다.");
-                response.put("travelmateId", postId);
-                
-                return ResponseEntity.ok(response);
-                
-            } catch (IllegalArgumentException e) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "모임 수정 권한이 없습니다."));
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "모임 수정에 실패했습니다."));
-            }
+            // 모임 수정
+            travelmateService.updateTravelmate(postId, request, currentUserId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "모임이 성공적으로 수정되었습니다.");
+            response.put("travelmateId", postId);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "모임 수정 권한이 없습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "모임 수정에 실패했습니다."));
         }
+    }
 
 
     @PostMapping("/travelmate")
@@ -436,6 +436,52 @@ public class TravelmateMainController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(Map.of("error", "모임 생성에 실패했습니다.", "detail", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/travelmate/{travelmateId}")
+    public ResponseEntity<Map<String, Object>> deleteTravelmate(@PathVariable Long travelmateId) {
+        try {
+            //#NeedToChange - 실제로는 authentication에서 사용자 ID를 가져와야 함
+            String currentUserId = "aaa";
+            
+            travelmateService.deleteTravelmate(travelmateId, currentUserId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "여행자모임이 성공적으로 삭제되었습니다.");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("권한 오류: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "삭제 권한이 없습니다: " + e.getMessage());
+            
+            return ResponseEntity.status(403).body(errorResponse);
+            
+        } catch (RuntimeException e) {
+            System.err.println("런타임 오류: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "여행자모임을 찾을 수 없습니다: " + e.getMessage());
+            
+            return ResponseEntity.status(404).body(errorResponse);
+            
+        } catch (Exception e) {
+            System.err.println("여행자모임 삭제 중 예상치 못한 오류: " + e.getMessage());
+            e.printStackTrace();
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "여행자모임 삭제에 실패했습니다: " + e.getMessage());
+            
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 }

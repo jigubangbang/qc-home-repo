@@ -15,12 +15,16 @@ import com.jigubangbang.com_service.model.TravelInfoDto;
 import com.jigubangbang.com_service.model.TravelInfoListResponse;
 import com.jigubangbang.com_service.model.TravelInfoRequestDto;
 import com.jigubangbang.com_service.model.TravelInfoResponseDto;
+import com.jigubangbang.com_service.repository.CommonMapper;
 import com.jigubangbang.com_service.repository.TravelinfoMapper;
 
 @Service
 public class TravelinfoService {
     @Autowired
     private TravelinfoMapper travelinfoMapper;
+
+    @Autowired
+    private CommonMapper commonMapper;
 
     public TravelInfoListResponse getTravelInfoList(
             int pageNum,
@@ -146,6 +150,11 @@ public class TravelinfoService {
         if (requestDTO.getThemeIds() != null && !requestDTO.getThemeIds().isEmpty()) {
             travelinfoMapper.insertTravelInfoThemes(travelInfoId, requestDTO.getThemeIds());
         }
+        //자기 자신을 참여자로 등록
+        joinTravelInfo(travelInfoId, requestDTO.getCreatorId());
+
+        //채팅방 만들기
+        commonMapper.insertChatRoom("TRAVELINFO", travelInfoId);
         
         return travelInfoId;
     }
@@ -325,6 +334,46 @@ public class TravelinfoService {
             System.err.println("참여한 여행정보 목록 조회 중 오류 발생 - 사용자: " + userId + ", 오류: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("참여한 여행정보 목록을 불러오는데 실패했습니다.", e);
+        }
+    }
+
+    @Transactional
+    public void deleteTravelInfo(Long travelinfoId, String currentUserId) {
+        // 1. 여행정보 존재 여부 및 작성자 확인
+        TravelInfoResponseDto travelInfo = travelinfoMapper.selectTravelInfoForDelete(travelinfoId);
+        if (travelInfo == null) {
+            throw new RuntimeException("여행정보를 찾을 수 없습니다. ID: " + travelinfoId);
+        }
+        
+        // 2. 삭제 권한 확인 (작성자만 삭제 가능)
+        if (!travelInfo.getCreatorId().equals(currentUserId)) {
+            throw new IllegalArgumentException("삭제 권한이 없습니다. 작성자만 삭제할 수 있습니다.");
+        }
+        
+        // 3. 관련 데이터 삭제 (순서 중요)
+        try {
+            // 여행정보 테마 삭제
+            travelinfoMapper.deleteTravelInfoThemes(travelinfoId);
+            // 3-1. 채팅 메시지 삭제
+            travelinfoMapper.deleteChatMessagesByTravelInfoId(travelinfoId);
+            
+            // 3-2. 채팅 참여자 삭제
+            travelinfoMapper.deleteChatParticipantsByTravelInfoId(travelinfoId);
+            
+            // 3-3. 채팅방 삭제
+            travelinfoMapper.deleteChatRoomByTravelInfoId(travelinfoId);
+            
+            // 3-4. 좋아요 정보 삭제
+            travelinfoMapper.deleteLikesByTravelInfoId(travelinfoId);
+            
+            // 3-7. 여행정보 메인 테이블 삭제
+            int deletedTravelInfo = travelinfoMapper.deleteTravelInfoById(travelinfoId);
+            if (deletedTravelInfo == 0) {
+                throw new RuntimeException("여행정보 삭제에 실패했습니다.");
+            }
+            
+        } catch (Exception e) {
+            throw new RuntimeException("여행정보 삭제 중 오류가 발생했습니다.", e);
         }
     }
 }
