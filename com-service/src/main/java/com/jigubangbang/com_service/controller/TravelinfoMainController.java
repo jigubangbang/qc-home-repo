@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,31 +55,17 @@ public class TravelinfoMainController {
     }
 
     @GetMapping("/likes")
-    public ResponseEntity<Map<String, Object>> getLikedTravelInfos() {
-        // 인증 못하면
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.ok(Map.of("likedTravelInfoIds", List.of()));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
+    public ResponseEntity<Map<String, Object>> getLikedTravelInfos(
+            @RequestHeader("User-Id") String userId) {
         List<Long> likedTravelInfoIds = travelinfoService.getLikedTravelInfoIds(userId);
-        
         return ResponseEntity.ok(Map.of("likedTravelInfoIds", likedTravelInfoIds));
     }
 
     @PostMapping("/like/{travelInfoId}")
     public ResponseEntity<Map<String, Object>> addLike(
-            @PathVariable Long travelInfoId) {
+            @PathVariable Long travelInfoId,
+            @RequestHeader("User-Id") String userId) {
         
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
         try {
             travelinfoService.addLike(travelInfoId, userId);
             return ResponseEntity.ok(Map.of("success", true, "message", "좋아요가 추가되었습니다."));
@@ -89,15 +76,9 @@ public class TravelinfoMainController {
 
     @DeleteMapping("/like/{travelInfoId}")
     public ResponseEntity<Map<String, Object>> removeLike(
-            @PathVariable Long travelInfoId) {
+            @PathVariable Long travelInfoId,
+            @RequestHeader("User-Id") String userId) {
         
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        // }
-
-        //String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
         try {
             travelinfoService.removeLike(travelInfoId, userId);
             return ResponseEntity.ok(Map.of("success", true, "message", "좋아요가 제거되었습니다."));
@@ -123,15 +104,9 @@ public class TravelinfoMainController {
 
     @PostMapping("/{travelInfoId}/join")
     public ResponseEntity<Map<String, Object>> joinTravelInfo(
-            @PathVariable Long travelInfoId) {
+            @PathVariable Long travelInfoId,
+            @RequestHeader("User-Id") String userId) {
         
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
         try {
             travelinfoService.joinTravelInfo(travelInfoId, userId);
             return ResponseEntity.ok(Map.of("success", true, "message", "여행정보 참여가 완료되었습니다."));
@@ -141,23 +116,13 @@ public class TravelinfoMainController {
     }
 
     @GetMapping("/joined-chats")
-    public ResponseEntity<Map<String, Object>> getJoinedTravelInfos() {
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.ok(Map.of("joinedChatIds", List.of()));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
-        List<Long> joinedChatIds = travelinfoService.getJoinedTravelInfoIds(userId);
+    public ResponseEntity<Map<String, Object>> getJoinedTravelInfos(
+            @RequestHeader("User-Id") String userId) {
         
+        List<Long> joinedChatIds = travelinfoService.getJoinedTravelInfoIds(userId);
         return ResponseEntity.ok(Map.of("joinedChatIds", joinedChatIds));
     }
 
-    /**
-     * 정보방 상세 조회
-     * GET /api/community/public/travelinfo/{id}
-     */
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getTravelInfo(@PathVariable Long id) {
         try {
@@ -178,10 +143,11 @@ public class TravelinfoMainController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createTravelInfo(@RequestBody TravelInfoRequestDto requestDTO) {
+    public ResponseEntity<Map<String, Object>> createTravelInfo(
+            @RequestBody TravelInfoRequestDto requestDTO,
+            @RequestHeader("User-Id") String userId) {
         try {
-            //#NeedToChange
-            requestDTO.setCreatorId("aaa");
+            requestDTO.setCreatorId(userId);
             Long travelInfoId = travelinfoService.createTravelInfo(requestDTO);
             
             Map<String, Object> response = new HashMap<>();
@@ -191,22 +157,17 @@ public class TravelinfoMainController {
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // 기타 예외
-            System.err.println("정보방 수정 중 예상치 못한 오류: " + e.getMessage());
+            System.err.println("정보방 생성 중 예상치 못한 오류: " + e.getMessage());
             e.printStackTrace();
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
-            errorResponse.put("error", "정보방 수정에 실패했습니다: " + e.getMessage());
+            errorResponse.put("error", "정보방 생성에 실패했습니다: " + e.getMessage());
             
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
-    /**
-     * 정보방 수정
-     * PUT /api/community/public/travelinfo/{id}
-     */
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> updateTravelInfo(
             @PathVariable Long id, 
@@ -230,12 +191,11 @@ public class TravelinfoMainController {
     }
 
     @DeleteMapping("/{travelinfoId}")
-    public ResponseEntity<Map<String, Object>> deleteTravelInfo(@PathVariable Long travelinfoId) {
+    public ResponseEntity<Map<String, Object>> deleteTravelInfo(
+            @PathVariable Long travelinfoId,
+            @RequestHeader("User-Id") String userId) {
         try {
-            //#NeedToChange - 실제로는 authentication에서 사용자 ID를 가져와야 함
-            String currentUserId = "aaa";
-            
-            travelinfoService.deleteTravelInfo(travelinfoId, currentUserId);
+            travelinfoService.deleteTravelInfo(travelinfoId, userId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

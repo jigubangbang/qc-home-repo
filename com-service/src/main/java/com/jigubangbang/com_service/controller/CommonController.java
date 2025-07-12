@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,15 +34,13 @@ public class CommonController {
 
     @PostMapping("/report")
     public ResponseEntity<Map<String, Object>> createReport(
-            @RequestBody CreateReportRequest request) {
-        // String userId = authentication.getName();
-                //#NeedToChange
-        String reporterId="aaa";
+            @RequestBody CreateReportRequest request,
+            @RequestHeader("User-Id") String reporterId) {
         
         try {
             commonService.createReport(request, reporterId);
             return ResponseEntity.ok(Map.of(
-                "success", true, 
+                "success", true,
                 "message", "신고 접수가 완료되었습니다."
             ));
         } catch (Exception e) {

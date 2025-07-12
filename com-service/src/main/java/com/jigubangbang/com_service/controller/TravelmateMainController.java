@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -142,32 +143,19 @@ public class TravelmateMainController {
     }
 
     @GetMapping("/travelmate/likes")
-    public ResponseEntity<LikedPostsResponse> getLikedPosts() {
-        //인증 못하면
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.ok(new LikedPostsResponse(List.of()));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId="aaa";
-        List<Long> likedPostIds = travelmateService.getLikedPostIds(userId);
+    public ResponseEntity<LikedPostsResponse> getLikedPosts(
+            @RequestHeader("User-Id") String userId) {
         
+        List<Long> likedPostIds = travelmateService.getLikedPostIds(userId);
         return ResponseEntity.ok(new LikedPostsResponse(likedPostIds));
     }
 
+    
     @PostMapping("/travelmate/like/{postId}")
     public ResponseEntity<Map<String, Object>> addLike(
-            @PathVariable Long postId
-            ) {
+            @PathVariable Long postId,
+            @RequestHeader("User-Id") String userId) {
         
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId="aaa";
         try {
             travelmateService.addLike(postId, userId);
             return ResponseEntity.ok(Map.of("success", true, "message", "좋아요가 추가되었습니다."));
@@ -178,16 +166,9 @@ public class TravelmateMainController {
 
     @DeleteMapping("/travelmate/like/{postId}")
     public ResponseEntity<Map<String, Object>> removeLike(
-            @PathVariable Long postId
-           ) {
+            @PathVariable Long postId,
+            @RequestHeader("User-Id") String userId) {
         
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        // }
-
-        //String userId = authentication.getName();
-        //#NeedToChange
-        String userId= "aaa";
         try {
             travelmateService.removeLike(postId, userId);
             return ResponseEntity.ok(Map.of("success", true, "message", "좋아요가 제거되었습니다."));
@@ -231,15 +212,8 @@ public class TravelmateMainController {
 
     @GetMapping("/travelmate/{postId}/member-status")
     public ResponseEntity<Map<String, Object>> getMemberStatus(
-        @PathVariable Long postId) {
-    
-    // if (authentication == null || !authentication.isAuthenticated()) {
-    //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-    // }
-
-    // String userId = authentication.getName();
-    //#NeedToChange
-        String userId = "aaa";
+            @PathVariable Long postId,
+            @RequestHeader("User-Id") String userId) {
         
         try {
             String status = travelmateService.getMemberStatus(postId, userId);
@@ -253,9 +227,9 @@ public class TravelmateMainController {
     @PostMapping("/travelmate/{postId}/join")
     public ResponseEntity<Map<String, Object>> joinTravelmate(
             @PathVariable Long postId,
-            @RequestBody Map<String, String> request) {
+            @RequestBody Map<String, String> request,
+            @RequestHeader("User-Id") String userId) {
         
-        String userId = "aaa"; // #NeedToChange
         String description = request.get("description");
         
         try {
@@ -292,18 +266,12 @@ public class TravelmateMainController {
         }
     }
 
+    
     @PostMapping("/travelmate/{postId}/comments")
     public ResponseEntity<Map<String, Object>> createQuestion(
             @PathVariable Long postId,
-            @RequestBody CreateCommentRequest request) {
-        
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
+            @RequestBody CreateCommentRequest request,
+            @RequestHeader("User-Id") String userId) {
         
         try {
             travelmateService.createComment(postId, userId, request.getContent());
@@ -318,15 +286,8 @@ public class TravelmateMainController {
     public ResponseEntity<Map<String, Object>> createReply(
             @PathVariable Long postId,
             @PathVariable Long parentId,
-            @RequestBody CreateCommentRequest request) {
-        
-        // if (authentication == null || !authentication.isAuthenticated()) {
-        //     return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        // }
-
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
+            @RequestBody CreateCommentRequest request,
+            @RequestHeader("User-Id") String userId) {
         
         try {
             travelmateService.createReply(postId, parentId, userId, request.getContent());
@@ -340,11 +301,8 @@ public class TravelmateMainController {
     public ResponseEntity<Map<String, Object>> updateComment(
             @PathVariable Long postId,
             @PathVariable Long commentId,
-            @RequestBody CreateCommentRequest request) {
-        
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
+            @RequestBody CreateCommentRequest request,
+            @RequestHeader("User-Id") String userId) {
         
         try {
             travelmateService.updateComment(postId, commentId, userId, request.getContent());
@@ -354,15 +312,13 @@ public class TravelmateMainController {
         }
     }
 
+
     // 댓글 삭제 (소프트 삭제)
     @DeleteMapping("/travelmate/{postId}/comments/{commentId}")
     public ResponseEntity<Map<String, Object>> deleteComment(
             @PathVariable Long postId,
-            @PathVariable Long commentId) {
-        
-        // String userId = authentication.getName();
-        //#NeedToChange
-        String userId = "aaa";
+            @PathVariable Long commentId,
+            @RequestHeader("User-Id") String userId) {
         
         try {
             travelmateService.deleteComment(postId, commentId, userId);
@@ -376,19 +332,10 @@ public class TravelmateMainController {
     public ResponseEntity<Map<String, Object>> updateTravelmate(
             @PathVariable("postId") Long postId,
             @RequestBody TravelmateUpdateRequest request,
-            HttpServletRequest httpRequest) {
+            @RequestHeader("User-Id") String userId) {
         
         try {
-            // JWT에서 사용자 ID 추출 #NeedToChange
-            //String currentUserId = JwtUtils.getUserIdFromRequest(httpRequest);
-            String currentUserId="aaa";
-            // if (currentUserId == null) {
-            //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            //         .body(Map.of("error", "로그인이 필요합니다."));
-            // }
-
-            // 모임 수정
-            travelmateService.updateTravelmate(postId, request, currentUserId);
+            travelmateService.updateTravelmate(postId, request, userId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "모임이 성공적으로 수정되었습니다.");
@@ -405,24 +352,13 @@ public class TravelmateMainController {
         }
     }
 
-
     @PostMapping("/travelmate")
     public ResponseEntity<Map<String, Object>> createTravelmate(
             @RequestBody TravelmateCreateRequest request,
-            HttpServletRequest httpRequest) {
+            @RequestHeader("User-Id") String userId) {
         
         try {
-            // JWT에서 사용자 ID 추출
-            // String currentUserId = JwtUtils.getUserIdFromRequest(httpRequest);
-            String currentUserId="aaa";
-            
-            // if (currentUserId == null) {
-            //     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            //         .body(Map.of("error", "로그인이 필요합니다."));
-            // }
-
-            // 모임 생성
-            Long travelmateId = travelmateService.createTravelmate(request, currentUserId);
+            Long travelmateId = travelmateService.createTravelmate(request, userId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "모임이 성공적으로 생성되었습니다.");
@@ -440,12 +376,11 @@ public class TravelmateMainController {
     }
 
     @DeleteMapping("/travelmate/{travelmateId}")
-    public ResponseEntity<Map<String, Object>> deleteTravelmate(@PathVariable Long travelmateId) {
+    public ResponseEntity<Map<String, Object>> deleteTravelmate(
+            @PathVariable Long travelmateId,
+            @RequestHeader("User-Id") String userId) {
         try {
-            //#NeedToChange - 실제로는 authentication에서 사용자 ID를 가져와야 함
-            String currentUserId = "aaa";
-            
-            travelmateService.deleteTravelmate(travelmateId, currentUserId);
+            travelmateService.deleteTravelmate(travelmateId, userId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
