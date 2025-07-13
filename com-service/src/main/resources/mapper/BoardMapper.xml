@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.com_service.repository.BoardMapper">
+
+    <!-- 공통 WHERE 조건 -->
+    <sql id="whereCondition">
+        WHERE 1=1
+        <if test="boardId != null">
+            AND bp.board_id = #{boardId}
+        </if>
+        <if test="categoryIds != null">
+            AND bp.board_id IN
+            <foreach collection="categoryIds" item="categoryId" open="(" close=")" separator=",">
+                #{categoryId}
+            </foreach>
+        </if>
+        <if test="categoryTitle != null and categoryTitle != ''">
+            AND bc.title LIKE CONCAT('%', #{categoryTitle}, '%')
+        </if>
+        <if test="search != null and search != ''">
+            AND (bp.title LIKE CONCAT('%', #{search}, '%') 
+                 OR bp.content LIKE CONCAT('%', #{search}, '%')
+                 OR u.nickname LIKE CONCAT('%', #{search}, '%'))
+        </if>
+        
+        <if test="travelStyleId != null and travelStyleId.trim() != ''">
+            AND u.travel_style_id = #{travelStyleId}
+        </if>
+
+        <if test="travelStyleIds != null and travelStyleIds.length > 0">
+            AND u.travel_style_id IN
+            <foreach item="styleId" collection="travelStyleIds" open="(" separator="," close=")">
+                #{styleId}
+            </foreach>
+        </if>
+    </sql>
+
+    <!-- 게시글 목록 조회 -->
+    <select id="getBoardList" parameterType="map" resultType="com.jigubangbang.com_service.model.BoardDto">
+        SELECT 
+        bp.id,
+        bp.board_id AS boardId,
+        bp.user_id AS userId,
+        bp.title,
+        bp.content,
+        bp.type,
+        bp.icon,
+        bp.view_count AS viewCount,
+        bp.like_count AS likeCount,
+        bp.bookmark_count AS bookmarkCount,
+        bp.created_at AS createdAt,
+        bp.updated_at AS updatedAt,
+        bp.blind_status AS blindStatus,
+        u.nickname AS creatorNickname,
+        u.travel_style_id AS creatorTravelStyle,
+        ts.label AS creatorTravelStyleLabel,
+        bc.title AS categoryTitle,
+        bi.image_url AS thumbnail,
+        COALESCE(comment_stats.comment_count, 0) AS commentCount
+    FROM board_post bp
+    INNER JOIN board_category bc ON bp.board_id = bc.id
+    INNER JOIN user u ON bp.user_id = u.user_id
+    LEFT JOIN travel_style ts ON u.travel_style_id = ts.id
+    LEFT JOIN board_image bi ON bp.id = bi.post_id 
+        AND bi.id = (SELECT MIN(id) FROM board_image WHERE post_id = bp.id)
+    LEFT JOIN (
+        SELECT 
+            post_id,
+            COUNT(*) AS comment_count
+        FROM board_comment 
+        WHERE is_deleted = FALSE
+        GROUP BY post_id
+    ) comment_stats ON bp.id = comment_stats.post_id
+    <include refid="whereCondition"/>
+    ORDER BY ${orderBy}
+    LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 게시글 총 개수 조회 -->
+    <select id="getBoardCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM board_post bp
+        INNER JOIN board_category bc ON bp.board_id = bc.id
+        INNER JOIN user u ON bp.user_id = u.user_id
+        <include refid="whereCondition"/>
+    </select>
+
+    <!-- 게시글 상세 조회 -->
+    <select id="getBoardDetail" parameterType="int" resultType="com.jigubangbang.com_service.model.BoardDto">
+        SELECT 
+            bp.id,
+            bp.board_id AS boardId,
+            bp.user_id AS userId,
+            bp.title,
+            bp.content,
+            bp.type,
+            bp.icon,
+            bp.view_count AS viewCount,
+            bp.like_count AS likeCount,
+            bp.bookmark_count AS bookmarkCount,
+            bp.created_at AS createdAt,
+            bp.updated_at AS updatedAt,
+            bp.blind_status AS blindStatus,
+            u.nickname AS creatorNickname,
+            u.travel_style_id AS creatorTravelStyle,
+            ts.label AS creatorTravelStyleLabel,
+            bc.title AS categoryTitle,
+            bi.image_url AS thumbnail,
+            COALESCE(comment_stats.comment_count, 0) AS commentCount
+        FROM board_post bp
+        INNER JOIN board_category bc ON bp.board_id = bc.id
+        INNER JOIN user u ON bp.user_id = u.user_id
+        LEFT JOIN travel_style ts ON u.travel_style_id = ts.id
+        LEFT JOIN board_image bi ON bp.id = bi.post_id 
+            AND bi.id = (SELECT MIN(id) FROM board_image WHERE post_id = bp.id)
+        LEFT JOIN (
+            SELECT 
+                post_id,
+                COUNT(*) AS comment_count
+            FROM board_comment 
+            WHERE is_deleted = FALSE
+            GROUP BY post_id
+        ) comment_stats ON bp.id = comment_stats.post_id
+        WHERE bp.id = #{postId}
+    </select>
+    
+    <select id="getBoardImages" resultType="String">
+        SELECT image_url
+        FROM board_image
+        WHERE post_id = #{postId}
+        ORDER BY id ASC
+    </select>
+
+    <!-- 북마크 -->
+    <select id="existsByPostIdAndUserId" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM board_bookmark
+        WHERE post_id = #{postId} AND user_id = #{userId}
+    </select>
+    
+    <select id="countByPostId" resultType="int">
+        SELECT COUNT(*)
+        FROM board_bookmark
+        WHERE post_id = #{postId}
+    </select>
+
+    <insert id="insert" parameterType="com.jigubangbang.com_service.model.BoardBookmark">
+        INSERT INTO board_bookmark (user_id, post_id, created_at)
+        VALUES (#{userId}, #{postId}, NOW())
+    </insert>
+
+    <delete id="deleteByPostIdAndUserId">
+        DELETE FROM board_bookmark
+        WHERE post_id = #{postId} AND user_id = #{userId}
+    </delete>
+
+    <select id="existsById" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM board_post
+        WHERE id = #{id}
+    </select>
+    
+    <update id="incrementBookmarkCount">
+        UPDATE board_post
+        SET bookmark_count = bookmark_count + 1
+        WHERE id = #{id}
+    </update>
+
+    <update id="decrementBookmarkCount">
+        UPDATE board_post
+        SET bookmark_count = bookmark_count - 1
+        WHERE id = #{id} AND bookmark_count &gt; 0
+    </update>
+
+    <select id="findPostIdsByUserId" resultType="int">
+        SELECT post_id
+        FROM board_bookmark
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="incrementViewCount">
+        UPDATE board_post
+        SET view_count = view_count + 1
+        WHERE id = #{id}
+    </update>
+
+    <!-- 좋아요 -->
+    <select id="existsLikeByPostIdAndUserId" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM board_like
+        WHERE post_id = #{postId} AND user_id = #{userId}
+    </select>
+    
+    <select id="countLikesByPostId" resultType="int">
+        SELECT COUNT(*)
+        FROM board_like
+        WHERE post_id = #{postId}
+    </select>
+    
+    <select id="findLikedPostIdsByUserId" resultType="int">
+        SELECT post_id
+        FROM board_like
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+    
+    <insert id="insertLike" parameterType="com.jigubangbang.com_service.model.BoardLike">
+        INSERT INTO board_like (user_id, post_id, created_at)
+        VALUES (#{userId}, #{postId}, NOW())
+    </insert>
+    
+    <delete id="deleteLikeByPostIdAndUserId">
+        DELETE FROM board_like
+        WHERE post_id = #{postId} AND user_id = #{userId}
+    </delete>
+    
+    <update id="incrementLikeCount">
+        UPDATE board_post
+        SET like_count = like_count + 1
+        WHERE id = #{id}
+    </update>
+    
+    <update id="decrementLikeCount">
+        UPDATE board_post
+        SET like_count = like_count - 1
+        WHERE id = #{id} AND like_count &gt; 0
+    </update>
+
+    <!-- 게시글 댓글 조회 (계층구조) -->
+    <select id="getBoardComments" resultType="com.jigubangbang.com_service.model.BoardCommentDto">
+        SELECT 
+            bc.id,
+            bc.user_id as userId,
+            u.nickname,
+            u.profile_image as profileImage,
+            bc.post_id as postId,
+            bc.content,
+            bc.level,
+            bc.parent_id as parentId,
+            bc.created_at as createdAt,
+            bc.updated_at as updatedAt,
+            bc.blind_status as blindStatus,
+            bc.is_deleted as isDeleted
+        FROM board_comment bc
+        LEFT JOIN user u ON bc.user_id = u.user_id
+        WHERE bc.post_id = #{postId}
+        ORDER BY bc.level ASC, bc.created_at ASC
+    </select>
+
+    <!-- 댓글 등록 -->
+    <insert id="insertBoardComment">
+        INSERT INTO board_comment (
+            user_id,
+            post_id,
+            content,
+            level,
+            parent_id,
+            created_at,
+            updated_at,
+            blind_status,
+            is_deleted
+        ) VALUES (
+            #{userId},
+            #{postId},
+            #{content},
+            #{level},
+            #{parentId},
+            NOW(),
+            NOW(),
+            'VISIBLE',
+            false
+        )
+    </insert>
+
+    <!-- 게시글 존재 여부 확인 -->
+    <select id="existsBoardPost" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM board_post
+        WHERE id = #{postId}
+    </select>
+
+    <!-- 댓글 존재 여부 확인 -->
+    <select id="existsBoardComment" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM board_comment
+        WHERE id = #{commentId}
+        AND post_id = #{postId}
+        AND is_deleted = false
+    </select>
+
+    <!-- 댓글 레벨 조회 -->
+    <select id="getBoardCommentLevel" resultType="Integer">
+        SELECT level
+        FROM board_comment
+        WHERE id = #{commentId}
+        AND is_deleted = false
+    </select>
+
+    <!-- 댓글 단건 조회 -->
+    <select id="getBoardCommentById" resultType="com.jigubangbang.com_service.model.BoardCommentDto">
+        SELECT 
+            id,
+            user_id as userId,
+            post_id as postId,
+            content,
+            level,
+            parent_id as parentId,
+            blind_status as blindStatus,
+            is_deleted as isDeleted
+        FROM board_comment
+        WHERE id = #{commentId}
+    </select>
+
+    <!-- 댓글 수정 -->
+    <update id="updateBoardComment">
+        UPDATE board_comment
+        SET content = #{content},
+            updated_at = NOW()
+        WHERE id = #{commentId}
+    </update>
+
+    <!-- 댓글 소프트 삭제 -->
+    <update id="softDeleteBoardComment">
+        UPDATE board_comment
+        SET is_deleted = true,
+            updated_at = NOW()
+        WHERE id = #{commentId}
+    </update>
+
+    <!-- 답변이 있는 댓글 소프트 삭제 (내용 변경) -->
+    <update id="softDeleteBoardCommentWithReplies">
+        UPDATE board_comment
+        SET content = '삭제된 댓글입니다.',
+            is_deleted = true,
+            updated_at = NOW()
+        WHERE id = #{commentId}
+    </update>
+
+    <!-- 답변 개수 조회 -->
+    <select id="getBoardReplyCount" resultType="int">
+        SELECT COUNT(*)
+        FROM board_comment
+        WHERE parent_id = #{parentId}
+        AND is_deleted = false
+    </select>
+
+    
+    <!-- 게시글 생성 -->
+    <insert id="insertBoard" parameterType="com.jigubangbang.com_service.model.BoardInsertDto" 
+        useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO board_post (
+            user_id,
+            board_id,
+            title,
+            content,
+            type,
+            view_count,
+            like_count,
+            bookmark_count,
+            created_at,
+            blind_status
+        ) VALUES (
+            #{userId},
+            #{boardId},
+            #{title},
+            #{content},
+            'NORMAL',
+            0,
+            0,
+            0,
+            NOW(),
+            'VISIBLE'
+        )
+    </insert>
+
+    <!-- 게시글 이미지 추가 -->
+    <insert id="insertBoardImage">
+        INSERT INTO board_image (
+            post_id,
+            image_url
+        ) VALUES (
+            #{postId},
+            #{imageUrl}
+        )
+    </insert>
+
+    <!-- 게시글 정보 조회 (권한 확인용) -->
+    <select id="getBoardPostById" resultType="com.jigubangbang.com_service.model.BoardPostDto">
+        SELECT 
+            id,
+            user_id as userId,
+            board_id as boardId,
+            title,
+            content,
+            created_at as createdAt,
+            updated_at as updatedAt
+        FROM board_post
+        WHERE id = #{postId}
+    </select>
+
+    <!-- 게시글 수정 -->
+    <update id="updateBoard">
+        UPDATE board_post
+        SET board_id = #{boardId},
+            title = #{title},
+            content = #{content},
+            updated_at = NOW()
+        WHERE id = #{postId}
+    </update>
+
+    <!-- 게시글 이미지 삭제 -->
+    <delete id="deleteBoardImages">
+        DELETE FROM board_image
+        WHERE post_id = #{postId}
+    </delete>
+</mapper>

@@ -4,6 +4,17 @@
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.jigubangbang.com_service.repository.CommonMapper">
+    <select id="existsUserById" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM user
+        WHERE user_id = #{userId}
+    </select>
+    
+    <select id="getUserTravelStyleById" resultType="string">
+        SELECT travel_style_id
+        FROM user
+        WHERE user_id = #{userId}
+    </select>
 
     <insert id="insertReport" parameterType="com.jigubangbang.com_service.model.Report">
         INSERT INTO report (

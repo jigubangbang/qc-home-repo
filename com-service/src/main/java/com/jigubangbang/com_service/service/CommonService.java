@@ -173,4 +173,16 @@ public class CommonService {
 
         return data;
     }
+
+    public String getUserTravelStyle(String userId) {
+        // 사용자 존재 여부 확인
+        if (!commonMapper.existsUserById(userId)) {
+            throw new RuntimeException("사용자를 찾을 수 없습니다.");
+        }
+        
+        // 여행 스타일 조회
+        String travelStyle = commonMapper.getUserTravelStyleById(userId);
+        
+        return travelStyle;
+    }
 }
