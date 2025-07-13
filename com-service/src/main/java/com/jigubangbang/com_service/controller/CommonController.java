@@ -18,13 +18,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.jigubangbang.com_service.model.ChatRoomDto;
 import com.jigubangbang.com_service.model.CreateReportRequest;
+import com.jigubangbang.com_service.model.MyTravelerDataDto;
 import com.jigubangbang.com_service.service.CommonService;
 import com.jigubangbang.com_service.service.S3Service;
 
 import jakarta.annotation.Resource;
 
 @RestController
-@RequestMapping("/com")
+@RequestMapping
 public class CommonController {
     @Autowired
     private CommonService commonService;
@@ -32,7 +33,7 @@ public class CommonController {
     @Resource
     private S3Service s3Service;
 
-    @PostMapping("/report")
+    @PostMapping("/user-com/report")
     public ResponseEntity<Map<String, Object>> createReport(
             @RequestBody CreateReportRequest request,
             @RequestHeader("User-Id") String reporterId) {
@@ -48,7 +49,7 @@ public class CommonController {
         }
     }
 
-    @GetMapping("/user-profile/{userId}")
+    @GetMapping("/com/user-profile/{userId}")
     public ResponseEntity<String> getUserProfile(@PathVariable String userId){
         try{
             String profile =  commonService.getUserProfile(userId);
@@ -58,7 +59,7 @@ public class CommonController {
         }
     }
 
-    @PostMapping("/upload-image/{type}")
+    @PostMapping("/com/upload-image/{type}")
     public ResponseEntity<Map<String, Object>> uploadAdminImage(
         @RequestParam("file") MultipartFile file, 
         @PathVariable("type") String fileType) {
@@ -66,9 +67,12 @@ public class CommonController {
             String s3Url = null;
             if (fileType.equals("travelinfo")){
                 s3Url = s3Service.uploadFile(file, "travelinfo-images/");
-            }else{
+            }else if(fileType.equals("travelmate")){
                 s3Url = s3Service.uploadFile(file, "travelmate-images/");
+            }else{
+                s3Url = s3Service.uploadFile(file, "board-images/");
             }
+            
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Uploaded image successfully");
@@ -86,7 +90,7 @@ public class CommonController {
     }
 
     //채팅방 id 가져오기
-    @PostMapping("/chat")
+    @PostMapping("/com/chat")
     public ResponseEntity<Map<String, Object>> getChatRoom(@RequestBody Map<String, Object> request) {
         try {
             String groupType = (String) request.get("groupType");
@@ -119,6 +123,33 @@ public class CommonController {
             System.err.println("채팅방 조회 실패: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(Map.of("error", "채팅방을 불러오는데 실패했습니다."));
+        }
+    }
+
+    //마이페이지
+    @GetMapping("/user-com/my-traveler")
+    public ResponseEntity<MyTravelerDataDto> getMyTravelerData(
+            @RequestHeader("User-Id") String currentUserId) {
+        
+        MyTravelerDataDto data = commonService.getMyTravelerData(currentUserId);
+        return ResponseEntity.ok(data);
+    } 
+
+    @GetMapping("/user-com/style")
+    public ResponseEntity<Map<String, Object>> getUserStyle(
+            @RequestHeader("User-Id") String userId) {
+        
+        try {
+            String travelStyle = commonService.getUserTravelStyle(userId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "travelStyle", travelStyle != null ? travelStyle : ""
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
         }
     }
 }

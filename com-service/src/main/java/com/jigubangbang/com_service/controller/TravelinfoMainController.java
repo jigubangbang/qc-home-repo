@@ -23,12 +23,12 @@ import com.jigubangbang.com_service.model.TravelInfoResponseDto;
 import com.jigubangbang.com_service.service.TravelinfoService;
 
 @RestController
-@RequestMapping("/com/travelinfo")
+@RequestMapping
 public class TravelinfoMainController {
     @Autowired
     private TravelinfoService travelinfoService;
 
-    @GetMapping("/list")
+    @GetMapping("/com/travelinfo/list")
     public ResponseEntity<TravelInfoListResponse> getTravelInfoList(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(required = false) String themes,
@@ -54,14 +54,14 @@ public class TravelinfoMainController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/likes")
+    @GetMapping("/user-com/travelinfo/likes")
     public ResponseEntity<Map<String, Object>> getLikedTravelInfos(
             @RequestHeader("User-Id") String userId) {
         List<Long> likedTravelInfoIds = travelinfoService.getLikedTravelInfoIds(userId);
         return ResponseEntity.ok(Map.of("likedTravelInfoIds", likedTravelInfoIds));
     }
 
-    @PostMapping("/like/{travelInfoId}")
+    @PostMapping("/user-com/travelinfo/like/{travelInfoId}")
     public ResponseEntity<Map<String, Object>> addLike(
             @PathVariable Long travelInfoId,
             @RequestHeader("User-Id") String userId) {
@@ -74,7 +74,7 @@ public class TravelinfoMainController {
         }
     }
 
-    @DeleteMapping("/like/{travelInfoId}")
+    @DeleteMapping("/user-com/travelinfo/like/{travelInfoId}")
     public ResponseEntity<Map<String, Object>> removeLike(
             @PathVariable Long travelInfoId,
             @RequestHeader("User-Id") String userId) {
@@ -102,7 +102,7 @@ public class TravelinfoMainController {
         }
     }
 
-    @PostMapping("/{travelInfoId}/join")
+    @PostMapping("/user-com/travelinfo/{travelInfoId}/join")
     public ResponseEntity<Map<String, Object>> joinTravelInfo(
             @PathVariable Long travelInfoId,
             @RequestHeader("User-Id") String userId) {
@@ -115,7 +115,7 @@ public class TravelinfoMainController {
         }
     }
 
-    @GetMapping("/joined-chats")
+    @GetMapping("/user-com/travelinfo/joined-chats")
     public ResponseEntity<Map<String, Object>> getJoinedTravelInfos(
             @RequestHeader("User-Id") String userId) {
         
@@ -123,7 +123,7 @@ public class TravelinfoMainController {
         return ResponseEntity.ok(Map.of("joinedChatIds", joinedChatIds));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/com/travelinfo/{id}")
     public ResponseEntity<Map<String, Object>> getTravelInfo(@PathVariable Long id) {
         try {
             TravelInfoResponseDto travelinfo = travelinfoService.getTravelInfoById(id);
@@ -142,7 +142,7 @@ public class TravelinfoMainController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/user-com/travelinfo/")
     public ResponseEntity<Map<String, Object>> createTravelInfo(
             @RequestBody TravelInfoRequestDto requestDTO,
             @RequestHeader("User-Id") String userId) {
@@ -168,7 +168,7 @@ public class TravelinfoMainController {
         }
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/user-com/travelinfo/{id}")
     public ResponseEntity<Map<String, Object>> updateTravelInfo(
             @PathVariable Long id, 
             @RequestBody TravelInfoRequestDto requestDTO) {
@@ -190,7 +190,7 @@ public class TravelinfoMainController {
         }
     }
 
-    @DeleteMapping("/{travelinfoId}")
+    @DeleteMapping("/user-com/travelinfo/{travelinfoId}")
     public ResponseEntity<Map<String, Object>> deleteTravelInfo(
             @PathVariable Long travelinfoId,
             @RequestHeader("User-Id") String userId) {

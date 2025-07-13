@@ -1,13 +1,24 @@
 package com.jigubangbang.com_service.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.jigubangbang.com_service.model.ChatRoomDto;
 import com.jigubangbang.com_service.model.CreateReportRequest;
+import com.jigubangbang.com_service.model.MyAppliedTravelmateDto;
+import com.jigubangbang.com_service.model.MyCompletedTravelmateDto;
+import com.jigubangbang.com_service.model.MyHostedTravelInfoDto;
+import com.jigubangbang.com_service.model.MyHostedTravelmateDto;
+import com.jigubangbang.com_service.model.MyJoinedTravelInfoDto;
+import com.jigubangbang.com_service.model.MyJoinedTravelmateDto;
+import com.jigubangbang.com_service.model.MyLikedTravelInfoDto;
+import com.jigubangbang.com_service.model.MyLikedTravelmateDto;
+import com.jigubangbang.com_service.model.MyTravelerDataDto;
 import com.jigubangbang.com_service.model.Report;
+import com.jigubangbang.com_service.model.TravelmateApplicationDto;
 import com.jigubangbang.com_service.repository.CommonMapper;
 
 @Service
@@ -77,9 +88,6 @@ public class CommonService {
         }
     }
 
-    /**
-     * 채팅방 존재 여부 확인
-     */
     public boolean existsChatRoom(String groupType, Long groupId) {
         try {
             return commonMapper.existsChatRoom(groupType, groupId);
@@ -88,5 +96,93 @@ public class CommonService {
             e.printStackTrace();
             return false;
         }
+    }
+
+     public MyTravelerDataDto getMyTravelerData(String currentUserId) {
+        MyTravelerDataDto data = new MyTravelerDataDto();
+
+        // 1. 내가 주최한 여행자 동행 모임
+        List<MyHostedTravelmateDto> hostedTravelmates = commonMapper.getMyHostedTravelmates(currentUserId);
+        
+        // 각 주최한 모임의 신청 정보 가져오기
+        for (MyHostedTravelmateDto travelmate : hostedTravelmates) {
+            List<TravelmateApplicationDto> applications = commonMapper.getTravelmateApplications(travelmate.getId());
+            travelmate.setApplications(applications);
+        }
+        data.setHostedTravelmates(hostedTravelmates);
+
+        // 2. 내가 참여 중인 동행 모임
+        List<MyJoinedTravelmateDto> joinedTravelmates = commonMapper.getMyJoinedTravelmates(currentUserId);
+        data.setJoinedTravelmates(joinedTravelmates);
+
+        // 3. 내가 신청 중인 동행 모임
+        List<MyAppliedTravelmateDto> appliedTravelmates = commonMapper.getMyAppliedTravelmates(currentUserId);
+        data.setAppliedTravelmates(appliedTravelmates);
+
+        // 4. 내가 좋아요를 누른 모임
+        List<MyLikedTravelmateDto> likedTravelmates = commonMapper.getMyLikedTravelmates(currentUserId);
+        data.setLikedTravelmates(likedTravelmates);
+
+        // 5. 내가 참여 완료한 모임
+        List<MyCompletedTravelmateDto> completedTravelmates = commonMapper.getMyCompletedTravelmates(currentUserId);
+        data.setCompletedTravelmates(completedTravelmates);
+
+        // 6. 내가 참여 중인 정보 공유방
+        List<MyJoinedTravelInfoDto> joinedTravelInfos = commonMapper.getMyJoinedTravelInfos(currentUserId);
+        // 테마 ID 리스트 설정
+        for (MyJoinedTravelInfoDto travelInfo : joinedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+        }
+        for (MyJoinedTravelInfoDto travelInfo : joinedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+            travelInfo.setIsJoined(true); // 참여 중인 정보방은 항상 true
+        }
+        data.setJoinedTravelInfos(joinedTravelInfos);
+
+        // 7. 내가 좋아요를 누른 정보 공유방
+        List<MyLikedTravelInfoDto> likedTravelInfos = commonMapper.getMyLikedTravelInfos(currentUserId);
+        // 테마 ID 리스트 설정
+        for (MyLikedTravelInfoDto travelInfo : likedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+        }
+        for (MyLikedTravelInfoDto travelInfo : likedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+            // 참가 여부 확인
+            boolean isJoined = commonMapper.isUserJoinedTravelInfo(travelInfo.getId(), currentUserId);
+            travelInfo.setIsJoined(isJoined);
+        }
+        data.setLikedTravelInfos(likedTravelInfos);
+
+        // 8. 내가 주최 중인 정보 공유방
+        List<MyHostedTravelInfoDto> hostedTravelInfos = commonMapper.getMyHostedTravelInfos(currentUserId);
+        // 테마 ID 리스트 설정
+        for (MyHostedTravelInfoDto travelInfo : hostedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+        }
+        for (MyHostedTravelInfoDto travelInfo : hostedTravelInfos) {
+            List<Integer> themeIds = commonMapper.getTravelInfoThemeIds(travelInfo.getId());
+            travelInfo.setThemeIds(themeIds);
+            travelInfo.setIsJoined(true); // 주최한 정보방은 항상 true
+        }
+        data.setHostedTravelInfos(hostedTravelInfos);
+
+        return data;
+    }
+
+    public String getUserTravelStyle(String userId) {
+        // 사용자 존재 여부 확인
+        if (!commonMapper.existsUserById(userId)) {
+            throw new RuntimeException("사용자를 찾을 수 없습니다.");
+        }
+        
+        // 여행 스타일 조회
+        String travelStyle = commonMapper.getUserTravelStyleById(userId);
+        
+        return travelStyle;
     }
 }

@@ -753,4 +753,53 @@
         DELETE FROM travelmate_region 
         WHERE mate_id = #{travelmateId}
     </delete>
+
+    <!-- 신청 정보 조회 -->
+    <select id="getApplicationById" resultType="com.jigubangbang.com_service.model.TravelmateApplicationDto">
+        SELECT 
+            id,
+            mate_id AS mateId,
+            user_id AS userId,
+            application_comment AS applicationComment,
+            status,
+            applied_at AS appliedAt,
+            responded_at AS respondedAt
+        FROM travelmate_application
+        WHERE id = #{applicationId}
+    </select>
+
+    <!-- 신청 상태 업데이트 -->
+    <update id="updateApplicationStatus">
+        UPDATE travelmate_application
+        SET status = #{status},
+            responded_at = NOW()
+        WHERE id = #{applicationId}
+    </update>
+
+    <!-- 그룹 멤버 추가 -->
+    <insert id="addGroupMember">
+        INSERT INTO group_user (
+            user_id,
+            group_type,
+            group_id,
+            joined_at
+        ) VALUES (
+            #{userId},
+            #{groupType},
+            #{groupId},
+            NOW()
+        )
+    </insert>
+
+    <!-- 여행 모임 정보 조회 -->
+    <select id="getTravelmateById" resultType="com.jigubangbang.com_service.model.TravelmatePostDto">
+        SELECT 
+            id,
+            creator_id AS creatorId,
+            title,
+            status
+        FROM travelmate_post
+        WHERE id = #{travelmateId}
+        AND status != 'DELETED'
+    </select>
 </mapper>
