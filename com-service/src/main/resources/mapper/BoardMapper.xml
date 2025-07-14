@@ -417,4 +417,125 @@
         DELETE FROM board_image
         WHERE post_id = #{postId}
     </delete>
+
+    <select id="getMyPosts" parameterType="map" resultType="com.jigubangbang.com_service.model.BoardDto">
+        SELECT 
+            bp.id,
+            bp.board_id AS boardId,
+            bp.user_id AS userId,
+            bp.title,
+            bp.content,
+            bp.type,
+            bp.icon,
+            bp.view_count AS viewCount,
+            bp.like_count AS likeCount,
+            bp.bookmark_count AS bookmarkCount,
+            bp.created_at AS createdAt,
+            bp.updated_at AS updatedAt,
+            bp.blind_status AS blindStatus,
+            u.nickname AS creatorNickname,
+            u.travel_style_id AS creatorTravelStyle,
+            ts.label AS creatorTravelStyleLabel,
+            bc.title AS categoryTitle,
+            bi.image_url AS thumbnail,
+            COALESCE(comment_stats.comment_count, 0) AS commentCount
+        FROM board_post bp
+        INNER JOIN board_category bc ON bp.board_id = bc.id
+        INNER JOIN user u ON bp.user_id = u.user_id
+        LEFT JOIN travel_style ts ON u.travel_style_id = ts.id
+        LEFT JOIN board_image bi ON bp.id = bi.post_id 
+            AND bi.id = (SELECT MIN(id) FROM board_image WHERE post_id = bp.id)
+        LEFT JOIN (
+            SELECT 
+                post_id,
+                COUNT(*) AS comment_count
+            FROM board_comment 
+            WHERE is_deleted = FALSE
+            GROUP BY post_id
+        ) comment_stats ON bp.id = comment_stats.post_id
+        WHERE bp.user_id = #{userId}
+        ORDER BY ${orderBy}
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 내가 쓴 글 총 개수 조회 -->
+    <select id="getMyPostsCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM board_post bp
+        WHERE bp.user_id = #{userId}
+    </select>
+
+    <!-- 내가 댓글 단 글 목록 조회 (댓글 내용 포함) -->
+    <select id="getMyCommentedPosts" parameterType="map" resultType="map">
+        SELECT 
+            bp.id AS postId,
+            bp.title AS postTitle,
+            bc.content AS content,
+            bp.created_at AS postCreatedAt,
+            bc.created_at AS createdAt,
+            bp.view_count AS viewCount,
+            bp.like_count AS likeCount,
+            bp.bookmark_count AS bookmarkCount,
+            COALESCE(comment_stats.comment_count, 0) AS commentCount
+        FROM board_comment bc
+        INNER JOIN board_post bp ON bc.post_id = bp.id
+        LEFT JOIN (
+            SELECT 
+                post_id,
+                COUNT(*) AS comment_count
+            FROM board_comment 
+            WHERE is_deleted = FALSE
+            GROUP BY post_id
+        ) comment_stats ON bp.id = comment_stats.post_id
+        WHERE bc.user_id = #{userId} 
+        AND bc.is_deleted = FALSE
+        GROUP BY bp.id, bc.id
+        ORDER BY ${orderBy}
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 내가 댓글 단 글 총 개수 조회 -->
+    <select id="getMyCommentedPostsCount" parameterType="map" resultType="int">
+        SELECT COUNT(DISTINCT bp.id)
+        FROM board_comment bc
+        INNER JOIN board_post bp ON bc.post_id = bp.id
+        WHERE bc.user_id = #{userId} 
+        AND bc.is_deleted = FALSE
+    </select>
+
+    <!-- 북마크한 글 ID 목록 조회 (페이지네이션 지원) -->
+    <select id="getBookmarkedPostIds" parameterType="map" resultType="int">
+        SELECT bb.post_id
+        FROM board_bookmark bb
+        INNER JOIN board_post bp ON bb.post_id = bp.id
+        WHERE bb.user_id = #{userId}
+        ORDER BY ${orderBy}
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 북마크한 글 총 개수 조회 -->
+    <select id="getBookmarkedPostsCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM board_bookmark bb
+        INNER JOIN board_post bp ON bb.post_id = bp.id
+        WHERE bb.user_id = #{userId}
+    </select>
+
+    <!-- 좋아요한 글 ID 목록 조회 (페이지네이션 지원) -->
+    <select id="getLikedPostIds" parameterType="map" resultType="int">
+        SELECT bl.post_id
+        FROM board_like bl
+        INNER JOIN board_post bp ON bl.post_id = bp.id
+        WHERE bl.user_id = #{userId}
+        ORDER BY ${orderBy}
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 좋아요한 글 총 개수 조회 -->
+    <select id="getLikedPostsCount" parameterType="map" resultType="int">
+        SELECT COUNT(*)
+        FROM board_like bl
+        INNER JOIN board_post bp ON bl.post_id = bp.id
+        WHERE bl.user_id = #{userId}
+    </select>
 </mapper>
