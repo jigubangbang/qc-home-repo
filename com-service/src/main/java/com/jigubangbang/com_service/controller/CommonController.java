@@ -67,9 +67,12 @@ public class CommonController {
             String s3Url = null;
             if (fileType.equals("travelinfo")){
                 s3Url = s3Service.uploadFile(file, "travelinfo-images/");
-            }else{
+            }else if(fileType.equals("travelmate")){
                 s3Url = s3Service.uploadFile(file, "travelmate-images/");
+            }else{
+                s3Url = s3Service.uploadFile(file, "board-images/");
             }
+            
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Uploaded image successfully");
@@ -131,4 +134,22 @@ public class CommonController {
         MyTravelerDataDto data = commonService.getMyTravelerData(currentUserId);
         return ResponseEntity.ok(data);
     } 
+
+    @GetMapping("/user-com/style")
+    public ResponseEntity<Map<String, Object>> getUserStyle(
+            @RequestHeader("User-Id") String userId) {
+        
+        try {
+            String travelStyle = commonService.getUserTravelStyle(userId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "travelStyle", travelStyle != null ? travelStyle : ""
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
+    }
 }

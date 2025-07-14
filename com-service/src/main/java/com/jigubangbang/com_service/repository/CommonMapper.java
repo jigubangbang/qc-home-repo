@@ -19,6 +19,8 @@ import com.jigubangbang.com_service.model.TravelmateApplicationDto;
 
 @Mapper
 public interface CommonMapper {
+    boolean existsUserById(@Param("userId") String userId);
+    String getUserTravelStyleById(@Param("userId") String userId);
 
     void insertReport(Report report);
     
