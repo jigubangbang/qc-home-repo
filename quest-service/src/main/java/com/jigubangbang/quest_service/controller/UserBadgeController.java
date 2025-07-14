@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,12 +26,10 @@ public class UserBadgeController {
 
     @GetMapping("/badges/{badge_id}")
     public ResponseEntity<BadgeModalDto> getBadgeModal(
-        @PathVariable("badge_id") int badge_id
+        @PathVariable("badge_id") int badge_id,
+        @RequestHeader("User-Id") String userId
     ){
-        //#NeedToChange
-        String user_id = "aaa";
-
-        BadgeModalDto badge = badgeService.getBadgeModal(badge_id, user_id);
+        BadgeModalDto badge = badgeService.getBadgeModal(badge_id, userId);
         if (badge == null) {
             return ResponseEntity.notFound().build();
         }
@@ -41,13 +40,11 @@ public class UserBadgeController {
     @PostMapping("/badges/{badge_id}/pin")
     public ResponseEntity<Map<String, Object>> pinBadge(
         @PathVariable("badge_id") int badge_id,
-        HttpServletRequest request
+        @RequestHeader("User-Id") String userId
     ){
-        //#NeedToChange
-        String user_id = "aaa";
         Map<String, Object> response = new HashMap<>();
-
-        boolean result = badgeService.pinBadge(user_id, badge_id);
+        
+        boolean result = badgeService.pinBadge(userId, badge_id);
         if(result){
             response.put("success", true);
             response.put("message", "뱃지 설정 완료");
@@ -57,21 +54,20 @@ public class UserBadgeController {
         }
         return ResponseEntity.ok(response);
     }
-
     //내 뱃지 목록
     @GetMapping("/badges")
-    public ResponseEntity<Map<String, Object>> getMayBadges(HttpServletRequest request){
-        //#NeedToChange
-        String user_id = "aaa";
-        Map<String, Object> result = badgeService.getUserBadgeInfo(user_id);
+    public ResponseEntity<Map<String, Object>> getMayBadges(
+        @RequestHeader("User-Id") String userId
+    ){
+        Map<String, Object> result = badgeService.getUserBadgeInfo(userId);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/badges/my")
-    public ResponseEntity<Map<String, Object>> getAwardedBadges(HttpServletRequest request){
-        //#NeedToChange
-        String user_id = "aaa";
-        Map<String, Object> result = badgeService.getUserBadges(user_id);
+    public ResponseEntity<Map<String, Object>> getAwardedBadges(
+        @RequestHeader("User-Id") String userId
+    ){
+        Map<String, Object> result = badgeService.getUserBadges(userId);
         return ResponseEntity.ok(result);
     }
 }

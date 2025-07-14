@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.com_service.repository.CommonMapper">
+
+    <insert id="insertReport" parameterType="com.jigubangbang.com_service.model.Report">
+        INSERT INTO report (
+            reporter_id,
+            target_user_id,
+            content_subtype,
+            content_type,
+            content_id,
+            reason_code,
+            reason_text,
+            report_status,
+            reported_at
+        ) VALUES (
+            #{reporterId},
+            #{targetUserId},
+            #{contentSubtype},
+            #{contentType},
+            #{contentId},
+            #{reasonCode},
+            #{reasonText},
+            #{reportStatus},
+            NOW()
+        )
+    </insert>
+
+    <select id="existsByReporterAndContent" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM report
+        WHERE reporter_id = #{reporterId}
+          AND content_subtype = #{contentSubtype}
+          AND content_id = #{contentId}
+    </select>
+
+    <select id="getUserProfile" parameterType="String" resultType="String">
+        SELECT profile_image
+        FROM user
+        WHERE user.user_id = #{userId}
+    </select>
+
+    <select id="findChatRoomByGroup" resultType="com.jigubangbang.com_service.model.ChatRoomDto">
+        SELECT 
+            id,
+            group_type AS groupType,
+            group_id AS groupId
+        FROM chat_room
+        WHERE group_type = #{groupType}
+        AND group_id = #{groupId}
+    </select>
+    
+    <!-- 채팅방 생성 -->
+    <insert id="insertChatRoom">
+        INSERT INTO chat_room (
+            group_type,
+            group_id
+        ) VALUES (
+            #{groupType},
+            #{groupId}
+        )
+    </insert>
+    
+    <!-- 채팅방 존재 여부 확인 -->
+    <select id="existsChatRoom" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM chat_room
+        WHERE group_type = #{groupType}
+        AND group_id = #{groupId}
+    </select>
+
+    <select id="getMyHostedTravelmates" resultType="com.jigubangbang.com_service.model.MyHostedTravelmateDto">
+        SELECT 
+            tp.id,
+            tp.title,
+            tp.simple_description AS simpleDescription,
+            tp.thumbnail_image AS thumbnailImage,
+            u.nickname AS creatorNickname,
+            COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
+            tp.start_at AS startAt,
+            tp.end_at AS endAt,
+            (
+                SELECT GROUP_CONCAT(
+                    CONCAT(
+                        COALESCE(co.name, ''),
+                        CASE WHEN ci.city_name IS NOT NULL THEN CONCAT(' ', ci.city_name) ELSE '' END
+                    ) 
+                    ORDER BY tr.id SEPARATOR ', '
+                )
+                FROM travelmate_region tr
+                LEFT JOIN country co ON tr.country_id = co.id
+                LEFT JOIN city ci ON tr.city_id = ci.id
+                WHERE tr.mate_id = tp.id
+            ) AS locationNames,
+            (
+                SELECT GROUP_CONCAT(tt.label ORDER BY tmt.id SEPARATOR ', ')
+                FROM travelmate_theme tmt
+                JOIN travel_theme tt ON tmt.theme_id = tt.id
+                WHERE tmt.mate_id = tp.id
+            ) AS themeNames,
+            (
+                SELECT GROUP_CONCAT(ts.label ORDER BY tms.id SEPARATOR ', ')
+                FROM travelmate_style tms
+                JOIN travel_style ts ON tms.style_id = ts.id
+                WHERE tms.mate_id = tp.id
+            ) AS styleNames,
+            '' AS targetNames,
+            (SELECT COUNT(*) FROM travelmate_like WHERE mate_id = tp.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELMATE' AND group_id = tp.id) AS memberCount,
+            tp.view_count AS viewCount,
+            tp.status,
+            tp.blind_status AS blindStatus
+        FROM travelmate_post tp
+        JOIN user u ON tp.creator_id = u.user_id
+        LEFT JOIN travel_style ts_creator ON u.travel_style_id = ts_creator.id
+        WHERE tp.creator_id = #{currentUserId}
+        AND tp.status != 'DELETED'
+        AND tp.blind_status = 'VISIBLE'
+        ORDER BY tp.created_at DESC
+    </select>
+
+    <!-- 특정 동행 모임의 신청 정보들 -->
+    <select id="getTravelmateApplications" resultType="com.jigubangbang.com_service.model.TravelmateApplicationDto">
+        SELECT 
+            ta.id,
+            ta.mate_id AS mateId,
+            ta.user_id AS userId,
+            u.nickname AS userNickname,
+            ta.application_comment AS applicationComment,
+            ta.status,
+            ta.applied_at AS appliedAt,
+            ta.responded_at AS respondedAt
+        FROM travelmate_application ta
+        JOIN user u ON ta.user_id = u.user_id
+        WHERE ta.mate_id = #{mateId}
+        ORDER BY ta.applied_at DESC
+    </select>
+
+    <!-- 내가 참여 중인 동행 모임 -->
+    <select id="getMyJoinedTravelmates" resultType="com.jigubangbang.com_service.model.MyJoinedTravelmateDto">
+        SELECT 
+            tp.id,
+            tp.title,
+            tp.simple_description AS simpleDescription,
+            tp.thumbnail_image AS thumbnailImage,
+            u.nickname AS creatorNickname,
+            COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
+            tp.start_at AS startAt,
+            tp.end_at AS endAt,
+            (
+                SELECT GROUP_CONCAT(
+                    CONCAT(
+                        COALESCE(co.name, ''),
+                        CASE WHEN ci.city_name IS NOT NULL THEN CONCAT(' ', ci.city_name) ELSE '' END
+                    ) 
+                    ORDER BY tr.id SEPARATOR ', '
+                )
+                FROM travelmate_region tr
+                LEFT JOIN country co ON tr.country_id = co.id
+                LEFT JOIN city ci ON tr.city_id = ci.id
+                WHERE tr.mate_id = tp.id
+            ) AS locationNames,
+            (
+                SELECT GROUP_CONCAT(tt.label ORDER BY tmt.id SEPARATOR ', ')
+                FROM travelmate_theme tmt
+                JOIN travel_theme tt ON tmt.theme_id = tt.id
+                WHERE tmt.mate_id = tp.id
+            ) AS themeNames,
+            (
+                SELECT GROUP_CONCAT(ts.label ORDER BY tms.id SEPARATOR ', ')
+                FROM travelmate_style tms
+                JOIN travel_style ts ON tms.style_id = ts.id
+                WHERE tms.mate_id = tp.id
+            ) AS styleNames,
+            '' AS targetNames,
+            (SELECT COUNT(*) FROM travelmate_like WHERE mate_id = tp.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELMATE' AND group_id = tp.id) AS memberCount,
+            tp.view_count AS viewCount,
+            tp.status,
+            tp.blind_status AS blindStatus,
+            gu.joined_at AS joinedAt
+        FROM travelmate_post tp
+        JOIN user u ON tp.creator_id = u.user_id
+        LEFT JOIN travel_style ts_creator ON u.travel_style_id = ts_creator.id
+        JOIN group_user gu ON gu.group_type = 'TRAVELMATE' AND gu.group_id = tp.id
+        WHERE gu.user_id = #{currentUserId}
+        AND tp.creator_id != #{currentUserId}
+        AND tp.status = 'ACTIVE'
+        AND tp.blind_status = 'VISIBLE'
+        ORDER BY gu.joined_at DESC
+    </select>
+
+    <!-- 내가 신청 중인 동행 모임 -->
+    <select id="getMyAppliedTravelmates" resultType="com.jigubangbang.com_service.model.MyAppliedTravelmateDto">
+        SELECT 
+            tp.id,
+            tp.title,
+            tp.simple_description AS simpleDescription,
+            tp.thumbnail_image AS thumbnailImage,
+            u.nickname AS creatorNickname,
+            COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
+            tp.start_at AS startAt,
+            tp.end_at AS endAt,
+            (
+                SELECT GROUP_CONCAT(
+                    CONCAT(
+                        COALESCE(co.name, ''),
+                        CASE WHEN ci.city_name IS NOT NULL THEN CONCAT(' ', ci.city_name) ELSE '' END
+                    ) 
+                    ORDER BY tr.id SEPARATOR ', '
+                )
+                FROM travelmate_region tr
+                LEFT JOIN country co ON tr.country_id = co.id
+                LEFT JOIN city ci ON tr.city_id = ci.id
+                WHERE tr.mate_id = tp.id
+            ) AS locationNames,
+            (
+                SELECT GROUP_CONCAT(tt.label ORDER BY tmt.id SEPARATOR ', ')
+                FROM travelmate_theme tmt
+                JOIN travel_theme tt ON tmt.theme_id = tt.id
+                WHERE tmt.mate_id = tp.id
+            ) AS themeNames,
+            (
+                SELECT GROUP_CONCAT(ts.label ORDER BY tms.id SEPARATOR ', ')
+                FROM travelmate_style tms
+                JOIN travel_style ts ON tms.style_id = ts.id
+                WHERE tms.mate_id = tp.id
+            ) AS styleNames,
+            '' AS targetNames,
+            (SELECT COUNT(*) FROM travelmate_like WHERE mate_id = tp.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELMATE' AND group_id = tp.id) AS memberCount,
+            tp.view_count AS viewCount,
+            tp.status,
+            tp.blind_status AS blindStatus,
+            ta.applied_at AS appliedAt,
+            ta.status AS applicationStatus,
+            ta.application_comment AS applicationComment
+        FROM travelmate_post tp
+        JOIN user u ON tp.creator_id = u.user_id
+        LEFT JOIN travel_style ts_creator ON u.travel_style_id = ts_creator.id
+        JOIN travelmate_application ta ON ta.mate_id = tp.id
+        WHERE ta.user_id = #{currentUserId}
+        AND ta.status = 'PENDING'
+        AND tp.status = 'ACTIVE'
+        AND tp.blind_status = 'VISIBLE'
+        ORDER BY ta.applied_at DESC
+    </select>
+
+    <!-- 내가 좋아요를 누른 모임 -->
+    <select id="getMyLikedTravelmates" resultType="com.jigubangbang.com_service.model.MyLikedTravelmateDto">
+        SELECT 
+            tp.id,
+            tp.title,
+            tp.simple_description AS simpleDescription,
+            tp.thumbnail_image AS thumbnailImage,
+            u.nickname AS creatorNickname,
+            COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
+            tp.start_at AS startAt,
+            tp.end_at AS endAt,
+            (
+                SELECT GROUP_CONCAT(
+                    CONCAT(
+                        COALESCE(co.name, ''),
+                        CASE WHEN ci.city_name IS NOT NULL THEN CONCAT(' ', ci.city_name) ELSE '' END
+                    ) 
+                    ORDER BY tr.id SEPARATOR ', '
+                )
+                FROM travelmate_region tr
+                LEFT JOIN country co ON tr.country_id = co.id
+                LEFT JOIN city ci ON tr.city_id = ci.id
+                WHERE tr.mate_id = tp.id
+            ) AS locationNames,
+            (
+                SELECT GROUP_CONCAT(tt.label ORDER BY tmt.id SEPARATOR ', ')
+                FROM travelmate_theme tmt
+                JOIN travel_theme tt ON tmt.theme_id = tt.id
+                WHERE tmt.mate_id = tp.id
+            ) AS themeNames,
+            (
+                SELECT GROUP_CONCAT(ts.label ORDER BY tms.id SEPARATOR ', ')
+                FROM travelmate_style tms
+                JOIN travel_style ts ON tms.style_id = ts.id
+                WHERE tms.mate_id = tp.id
+            ) AS styleNames,
+            '' AS targetNames,
+            (SELECT COUNT(*) FROM travelmate_like WHERE mate_id = tp.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELMATE' AND group_id = tp.id) AS memberCount,
+            tp.view_count AS viewCount,
+            tp.status,
+            tp.blind_status AS blindStatus,
+            tl.created_at AS likedAt
+        FROM travelmate_post tp
+        JOIN user u ON tp.creator_id = u.user_id
+        LEFT JOIN travel_style ts_creator ON u.travel_style_id = ts_creator.id
+        JOIN travelmate_like tl ON tl.mate_id = tp.id
+        WHERE tl.user_id = #{currentUserId}
+        AND tp.status != 'DELETED'
+        AND tp.blind_status = 'VISIBLE'
+        ORDER BY tl.created_at DESC
+    </select>
+
+    <!-- 내가 참여 완료한 모임 -->
+    <select id="getMyCompletedTravelmates" resultType="com.jigubangbang.com_service.model.MyCompletedTravelmateDto">
+        SELECT 
+            tp.id,
+            tp.title,
+            tp.simple_description AS simpleDescription,
+            tp.thumbnail_image AS thumbnailImage,
+            u.nickname AS creatorNickname,
+            COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
+            tp.start_at AS startAt,
+            tp.end_at AS endAt,
+            (
+                SELECT GROUP_CONCAT(
+                    CONCAT(
+                        COALESCE(co.name, ''),
+                        CASE WHEN ci.city_name IS NOT NULL THEN CONCAT(' ', ci.city_name) ELSE '' END
+                    ) 
+                    ORDER BY tr.id SEPARATOR ', '
+                )
+                FROM travelmate_region tr
+                LEFT JOIN country co ON tr.country_id = co.id
+                LEFT JOIN city ci ON tr.city_id = ci.id
+                WHERE tr.mate_id = tp.id
+            ) AS locationNames,
+            (
+                SELECT GROUP_CONCAT(tt.label ORDER BY tmt.id SEPARATOR ', ')
+                FROM travelmate_theme tmt
+                JOIN travel_theme tt ON tmt.theme_id = tt.id
+                WHERE tmt.mate_id = tp.id
+            ) AS themeNames,
+            (
+                SELECT GROUP_CONCAT(ts.label ORDER BY tms.id SEPARATOR ', ')
+                FROM travelmate_style tms
+                JOIN travel_style ts ON tms.style_id = ts.id
+                WHERE tms.mate_id = tp.id
+            ) AS styleNames,
+            '' AS targetNames,
+            (SELECT COUNT(*) FROM travelmate_like WHERE mate_id = tp.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELMATE' AND group_id = tp.id) AS memberCount,
+            tp.view_count AS viewCount,
+            tp.status,
+            tp.blind_status AS blindStatus,
+            gu.joined_at AS joinedAt
+        FROM travelmate_post tp
+        JOIN user u ON tp.creator_id = u.user_id
+        LEFT JOIN travel_style ts_creator ON u.travel_style_id = ts_creator.id
+        JOIN group_user gu ON gu.group_type = 'TRAVELMATE' AND gu.group_id = tp.id
+        WHERE gu.user_id = #{currentUserId}
+        AND tp.status = 'END'
+        AND tp.blind_status = 'VISIBLE'
+        ORDER BY tp.end_at DESC
+    </select>
+
+    <!-- 내가 참여 중인 정보 공유방 -->
+    <select id="getMyJoinedTravelInfos" resultType="com.jigubangbang.com_service.model.MyJoinedTravelInfoDto">
+        SELECT 
+            ti.id,
+            ti.title,
+            ti.simple_description AS simpleDescription,
+            ti.creator_id AS creatorId,
+            u.nickname AS creatorNickname,
+            ti.enter_description AS enterDescription,
+            ti.thumbnail_image AS thumbnailImage,
+            ti.created_at AS createdAt,
+            ti.blind_status AS blindStatus,
+            (SELECT COUNT(*) FROM travel_info_like WHERE travel_info_id = ti.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELINFO' AND group_id = ti.id) AS memberCount,
+            (
+                SELECT cm.message 
+                FROM chat_room cr
+                JOIN chat_message cm ON cr.id = cm.chat_id
+                WHERE cr.group_type = 'TRAVELINFO' AND cr.group_id = ti.id
+                ORDER BY cm.created_at DESC
+                LIMIT 1
+            ) AS latestMessage,
+            (
+                SELECT COUNT(*)
+                FROM chat_room cr
+                JOIN chat_message cm ON cr.id = cm.chat_id
+                WHERE cr.group_type = 'TRAVELINFO' AND cr.group_id = ti.id
+            ) AS chatCount,
+            gu.joined_at AS joinedAt
+        FROM travel_info ti
+        JOIN user u ON ti.creator_id = u.user_id
+        JOIN group_user gu ON gu.group_type = 'TRAVELINFO' AND gu.group_id = ti.id
+        WHERE gu.user_id = #{currentUserId}
+        AND ti.creator_id != #{currentUserId}
+        AND ti.blind_status = 'VISIBLE'
+        AND ti.deleted_at IS NULL
+        ORDER BY gu.joined_at DESC
+    </select>
+
+    <!-- 내가 좋아요를 누른 정보 공유방 -->
+    <select id="getMyLikedTravelInfos" resultType="com.jigubangbang.com_service.model.MyLikedTravelInfoDto">
+        SELECT 
+            ti.id,
+            ti.title,
+            ti.simple_description AS simpleDescription,
+            ti.creator_id AS creatorId,
+            u.nickname AS creatorNickname,
+            ti.enter_description AS enterDescription,
+            ti.thumbnail_image AS thumbnailImage,
+            ti.created_at AS createdAt,
+            ti.blind_status AS blindStatus,
+            (SELECT COUNT(*) FROM travel_info_like WHERE travel_info_id = ti.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELINFO' AND group_id = ti.id) AS memberCount,
+            (
+                SELECT cm.message 
+                FROM chat_room cr
+                JOIN chat_message cm ON cr.id = cm.chat_id
+                WHERE cr.group_type = 'TRAVELINFO' AND cr.group_id = ti.id
+                ORDER BY cm.created_at DESC
+                LIMIT 1
+            ) AS latestMessage,
+            (
+                SELECT COUNT(*)
+                FROM chat_room cr
+                JOIN chat_message cm ON cr.id = cm.chat_id
+                WHERE cr.group_type = 'TRAVELINFO' AND cr.group_id = ti.id
+            ) AS chatCount,
+            til.created_at AS likedAt
+        FROM travel_info ti
+        JOIN user u ON ti.creator_id = u.user_id
+        JOIN travel_info_like til ON til.travel_info_id = ti.id
+        WHERE til.user_id = #{currentUserId}
+        AND ti.blind_status = 'VISIBLE'
+        AND ti.deleted_at IS NULL
+        ORDER BY til.created_at DESC
+    </select>
+
+    <!-- 내가 주최 중인 정보 공유방 -->
+    <select id="getMyHostedTravelInfos" resultType="com.jigubangbang.com_service.model.MyHostedTravelInfoDto">
+        SELECT 
+            ti.id,
+            ti.title,
+            ti.simple_description AS simpleDescription,
+            ti.creator_id AS creatorId,
+            u.nickname AS creatorNickname,
+            ti.enter_description AS enterDescription,
+            ti.thumbnail_image AS thumbnailImage,
+            ti.created_at AS createdAt,
+            ti.blind_status AS blindStatus,
+            (SELECT COUNT(*) FROM travel_info_like WHERE travel_info_id = ti.id) AS likeCount,
+            (SELECT COUNT(*) FROM group_user WHERE group_type = 'TRAVELINFO' AND group_id = ti.id) AS memberCount,
+            (
+                SELECT cm.message 
+                FROM chat_room cr
+                JOIN chat_message cm ON cr.id = cm.chat_id
+                WHERE cr.group_type = 'TRAVELINFO' AND cr.group_id = ti.id
+                ORDER BY cm.created_at DESC
+                LIMIT 1
+            ) AS latestMessage,
+            (
+                SELECT COUNT(*)
+                FROM chat_room cr
+                JOIN chat_message cm ON cr.id = cm.chat_id
+                WHERE cr.group_type = 'TRAVELINFO' AND cr.group_id = ti.id
+            ) AS chatCount
+        FROM travel_info ti
+        JOIN user u ON ti.creator_id = u.user_id
+        WHERE ti.creator_id = #{currentUserId}
+        AND ti.blind_status = 'VISIBLE'
+        AND ti.deleted_at IS NULL
+        ORDER BY ti.created_at DESC
+    </select>
+
+    <!-- 정보 공유방의 테마 ID 리스트 조회 -->
+    <select id="getTravelInfoThemeIds" resultType="Integer">
+        SELECT theme_id
+        FROM travel_info_theme
+        WHERE travel_info_id = #{travelInfoId}
+        ORDER BY theme_id
+    </select>
+
+    <select id="isUserJoinedTravelInfo" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM group_user
+        WHERE group_type = 'TRAVELINFO'
+        AND group_id = #{travelInfoId}
+        AND user_id = #{currentUserId}
+    </select>
+    
+</mapper>

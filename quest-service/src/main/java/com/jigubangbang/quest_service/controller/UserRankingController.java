@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,12 +19,11 @@ public class UserRankingController {
     private RankingService rankingService;
 
     @GetMapping("/ranking/my")
-    public ResponseEntity<Map<String, Object>> getMyRanking() {
-        //#NeedToChange
-        String user_id = "aaa";
-        
-        int totalMemeber=rankingService.getTotalMember();
-        int myRank = rankingService.getRankingById(user_id);
+    public ResponseEntity<Map<String, Object>> getMyRanking(
+        @RequestHeader("User-Id") String userId
+    ) {
+        int totalMemeber = rankingService.getTotalMember();
+        int myRank = rankingService.getRankingById(userId);
 
         Map<String, Object> response = new HashMap<>();
         response.put("count", myRank);

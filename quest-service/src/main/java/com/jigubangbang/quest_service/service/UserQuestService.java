@@ -80,7 +80,6 @@ public class UserQuestService {
         userQuestMapper.reChallengeQuestUser(params);
     }
 
-    //#NeedToChange
     public UserJourneyDto getUserJourney(String user_id){
         return userQuestMapper.getUserJourney(user_id);
     }
@@ -146,7 +145,7 @@ public class UserQuestService {
             }
         }
         return result;
-        //#NeedToChange
+        //#NeedToChange알림
     }
 
     private List<Integer> checkAndAwardBadges(String user_id, int completed_quest_id){
