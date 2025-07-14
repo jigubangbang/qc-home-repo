@@ -808,4 +808,9 @@
         FROM travelmate_post
         WHERE id = #{postId}
     </select>
+
+    <delete id="deleteApplicationById" parameterType="int">
+        DELETE FROM travelmate_application 
+        WHERE id = #{applicationId}
+    </delete>
 </mapper>

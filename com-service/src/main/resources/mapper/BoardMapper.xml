@@ -552,5 +552,27 @@
         WHERE id = #{commentId}
     </select>
 
+    <!-- 게시글에 달린 모든 댓글 삭제 -->
+    <delete id="deleteBoardComments">
+        DELETE FROM board_comment
+        WHERE post_id = #{postId}
+    </delete>
 
+    <!-- 게시글의 모든 좋아요 삭제 -->
+    <delete id="deleteBoardLikes">
+        DELETE FROM board_like
+        WHERE post_id = #{postId}
+    </delete>
+
+    <!-- 게시글의 모든 북마크 삭제 -->
+    <delete id="deleteBoardBookmarks">
+        DELETE FROM board_bookmark
+        WHERE post_id = #{postId}
+    </delete>
+
+    <!-- 게시글 삭제 -->
+    <delete id="deleteBoard">
+        DELETE FROM board_post
+        WHERE id = #{postId}
+    </delete>
 </mapper>

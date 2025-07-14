@@ -784,4 +784,33 @@ public class BoardService {
                 return "bl.created_at DESC";
         }
     }
+
+    @Transactional
+    public void deleteBoard(String userId, Integer postId) {
+        // 게시글 존재 여부 및 권한 확인
+        BoardPostDto existingPost = boardMapper.getBoardPostById(postId);
+        if (existingPost == null) {
+            throw new IllegalArgumentException("존재하지 않는 게시글입니다.");
+        }
+        
+        if (!existingPost.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("게시글 삭제 권한이 없습니다.");
+        }
+        
+        // 게시글과 관련된 데이터 삭제
+        // 1. 게시글 이미지 삭제
+        boardMapper.deleteBoardImages(postId);
+        
+        // 2. 게시글에 달린 댓글들 삭제
+        boardMapper.deleteBoardComments(postId);
+        
+        // 3. 게시글 좋아요 삭제
+        boardMapper.deleteBoardLikes(postId);
+        
+        // 4. 게시글 북마크 삭제
+        boardMapper.deleteBoardBookmarks(postId);
+        
+        // 5. 게시글 삭제
+        boardMapper.deleteBoard(postId);
+    }
 }

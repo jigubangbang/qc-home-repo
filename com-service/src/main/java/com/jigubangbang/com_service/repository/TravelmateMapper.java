@@ -136,6 +136,7 @@ public interface TravelmateMapper {
                             @Param("responderId") String responderId);
 
     TravelmatePostDto getTravelmateById(@Param("travelmateId") Long travelmateId);
+    void deleteApplicationById(@Param("applicationId") Integer applicationId);
 
     // 그룹 멤버 추가
     void addGroupMember(@Param("userId") String userId, 

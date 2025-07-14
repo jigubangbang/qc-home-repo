@@ -833,4 +833,36 @@ public class TravelmateService {
         
         return result;
     }
+
+    @Transactional
+    public void deleteApplication(Long travelmateId, Integer applicationId, String currentUserId) {
+        // 1. 신청 정보 확인
+        TravelmateApplicationDto application = travelmateMapper.getApplicationById(applicationId);
+        if (application == null) {
+            throw new RuntimeException("존재하지 않는 신청입니다.");
+        }
+        
+        // 2. 해당 여행 모임의 신청인지 확인
+        if (!application.getMateId().equals(travelmateId)) {
+            throw new RuntimeException("해당 모임의 신청이 아닙니다.");
+        }
+        
+        // 3. 해당 여행 모임의 호스트인지 확인 (호스트만 신청을 삭제할 수 있음)
+        TravelmatePostDto travelmate = travelmateMapper.getTravelmateById(travelmateId);
+        if (travelmate == null) {
+            throw new RuntimeException("존재하지 않는 여행 모임입니다.");
+        }
+        
+        if (!travelmate.getCreatorId().equals(currentUserId)) {
+            throw new IllegalArgumentException("해당 모임의 호스트만 신청을 삭제할 수 있습니다.");
+        }
+        
+        // 4. 신청 삭제 (하드 삭제)
+        try {
+            travelmateMapper.deleteApplicationById(applicationId);
+        } catch (Exception e) {
+            System.err.println("신청 삭제 중 오류 발생: " + e.getMessage());
+            throw new RuntimeException("신청 삭제에 실패했습니다.", e);
+        }
+    }
 }

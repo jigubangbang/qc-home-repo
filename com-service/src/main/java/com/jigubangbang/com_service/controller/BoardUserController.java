@@ -293,6 +293,31 @@ public class BoardUserController {
             ));
         }
     }
+
+    
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Map<String, Object>> deleteBoard(
+            @PathVariable Integer postId,
+            @RequestHeader("User-Id") String userId) {
+        
+        try {
+            boardService.deleteBoard(userId, postId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "게시글이 성공적으로 삭제되었습니다."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "success", false,
+                "error", "게시글 삭제에 실패했습니다."
+            ));
+        }
+    }
 }
 
     

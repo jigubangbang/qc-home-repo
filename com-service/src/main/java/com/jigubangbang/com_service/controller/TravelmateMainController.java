@@ -511,26 +511,9 @@ public class TravelmateMainController {
                     
                     System.out.println("[TravelmateController] 여행 모임 수락 알림 발송 성공: " + notificationResponse.getBody());
                 }
-                    
-                //  else if ("reject".equals(processedAction)) {
-                //     // 거절 알림
-                //     GroupAcceptedNotificationRequestDto rejectNotification = GroupAcceptedNotificationRequestDto.builder()
-                //         .applicantId(applicantId)        // 신청자에게 알림
-                //         .groupName(groupName)
-                //         .groupId(groupId.intValue())
-                //         .relatedUrl("/traveler/mate/" + groupId)
-                //         .creatorId(hostId)
-                //         .build();
-                    
-                //     ResponseEntity<Map<String, Object>> notificationResponse = 
-                //         notificationClient.createGroupRejectNotification(rejectNotification);
-                    
-                //     System.out.println("[TravelmateController] 여행 모임 거절 알림 발송 성공: " + notificationResponse.getBody());
-                // }
-                
+
             } catch (Exception notificationError) {
                 System.out.println("[TravelmateController] 여행 모임 신청 처리 알림 발송 실패: " + notificationError.getMessage());
-                // 알림 실패해도 신청 처리는 성공으로 처리
             }
         }
             String message = action.equals("accept") ? "신청을 수락했습니다." : "신청을 거절했습니다.";
@@ -543,4 +526,38 @@ public class TravelmateMainController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @DeleteMapping("/user-com/travelmate/{travelmateId}/application/{applicationId}")
+    public ResponseEntity<Map<String, Object>> deleteApplication(
+            @PathVariable Long travelmateId,
+            @PathVariable Integer applicationId,
+            @RequestHeader("User-Id") String currentUserId) {
+        
+        try {
+            travelmateService.deleteApplication(travelmateId, applicationId, currentUserId);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "신청이 삭제되었습니다.");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            System.err.println("신청 삭제 권한 오류: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", e.getMessage()));
+                
+        } catch (RuntimeException e) {
+            System.err.println("신청 삭제 중 오류: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", e.getMessage()));
+                
+        } catch (Exception e) {
+            System.err.println("신청 삭제 중 예상치 못한 오류: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "신청 삭제에 실패했습니다."));
+        }
+    }
+
 }

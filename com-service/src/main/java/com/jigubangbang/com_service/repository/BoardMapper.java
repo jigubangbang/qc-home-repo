@@ -69,6 +69,10 @@ public interface BoardMapper {
                     @Param("title") String title,
                     @Param("content") String content);
     void deleteBoardImages(@Param("postId") Integer postId);
+    void deleteBoardComments(@Param("postId") Integer postId);
+    void deleteBoardLikes(@Param("postId") Integer postId);
+    void deleteBoardBookmarks(@Param("postId") Integer postId);
+    void deleteBoard(@Param("postId") Integer postId);
 
     //내 게시판 조회
     // 내가 쓴 글 관련
