@@ -284,7 +284,7 @@ public class TravelmateService {
         }
     }
 
-    public void joinTravelmate(Long postId, String userId, String description) {
+    public Map<String, Object> joinTravelmate(Long postId, String userId, String description) {
         try {
             // 게시글 존재 여부 확인
             if (!travelmateMapper.existsPost(postId)) {
@@ -318,8 +318,22 @@ public class TravelmateService {
                 }
             }
 
+            // 게시글 제목 조회 (알림용)
+            String groupName = travelmateMapper.findPostTitle(postId);
+
             // 참여 신청 추가
             travelmateMapper.insertMemberApplication(postId, userId, description);
+
+            // 알림 정보 반환
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("needNotification", true);
+            result.put("creatorId", creatorId);
+            result.put("groupName", groupName);
+            result.put("postId", postId);
+            result.put("applicantId", userId);
+            
+            return result;
             
         } catch (IllegalArgumentException e) {
             System.err.println("참여 신청 실패: " + e.getMessage());
@@ -773,7 +787,7 @@ public class TravelmateService {
     }
 
     @Transactional
-    public void processApplication(Long travelmateId, Integer applicationId, String action, String currentUserId) {
+    public Map<String, Object> processApplication(Long travelmateId, Integer applicationId, String action, String currentUserId) {
         // 1. 해당 여행 모임의 호스트인지 확인
         TravelmatePostDto travelmate = travelmateMapper.getTravelmateById(travelmateId);
         if (travelmate == null) {
@@ -806,5 +820,17 @@ public class TravelmateService {
         if (action.equals("accept")) {
             travelmateMapper.addGroupMember(application.getUserId(), "TRAVELMATE", travelmateId);
         }
+
+        // 5. 알림 정보 반환
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("needNotification", true);
+        result.put("action", action);
+        result.put("applicantId", application.getUserId());
+        result.put("groupName", travelmate.getTitle());
+        result.put("groupId", travelmateId);
+        result.put("hostId", currentUserId);
+        
+        return result;
     }
 }

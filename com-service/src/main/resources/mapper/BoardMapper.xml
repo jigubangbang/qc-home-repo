@@ -538,4 +538,19 @@
         INNER JOIN board_post bp ON bl.post_id = bp.id
         WHERE bl.user_id = #{userId}
     </select>
+
+    <select id="getBoardPostAuthor" parameterType="int" resultType="string">
+        SELECT user_id 
+        FROM board_post
+        WHERE id = #{postId}
+    </select>
+
+    <!-- 댓글 작성자 ID 조회 -->
+    <select id="getBoardCommentAuthor" parameterType="int" resultType="string">
+        SELECT user_id 
+        FROM board_comment
+        WHERE id = #{commentId}
+    </select>
+
+
 </mapper>

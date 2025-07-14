@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jigubangbang.com_service.chat_service.NotificationServiceClient;
 import com.jigubangbang.com_service.model.CityDto;
 import com.jigubangbang.com_service.model.CountryDto;
 import com.jigubangbang.com_service.model.CreateCommentRequest;
@@ -31,6 +32,8 @@ import com.jigubangbang.com_service.model.TravelmateDetailResponse;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateRequest;
+import com.jigubangbang.com_service.model.chat_service.GroupAcceptedNotificationRequestDto;
+import com.jigubangbang.com_service.model.chat_service.GroupApplyNotificationRequestDto;
 import com.jigubangbang.com_service.service.TravelmateService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,6 +43,10 @@ import jakarta.servlet.http.HttpServletRequest;
 public class TravelmateMainController {
     @Autowired
     private TravelmateService travelmateService;
+
+    @Autowired
+    private NotificationServiceClient notificationClient;
+
 
     //국가 목록 조회
     @GetMapping("/com/countries")
@@ -233,16 +240,52 @@ public class TravelmateMainController {
         String description = request.get("description");
         
         try {
-            travelmateService.joinTravelmate(postId, userId, description);
-            return ResponseEntity.ok(Map.of(
-                "success", true, 
-                "message", "참여 신청이 완료되었습니다.",
-                "status", "PENDING"
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        System.out.println("=== 여행 모임 참여 신청 시작 ===");
+        Map<String, Object> serviceResult = travelmateService.joinTravelmate(postId, userId, description);
+        
+        // 알림 처리
+        if (serviceResult.get("needNotification") != null && (Boolean) serviceResult.get("needNotification")) {
+            System.out.println("여행 모임 참여 신청 알림 처리 시작");
+            
+                try {
+                    String creatorId = (String) serviceResult.get("creatorId");
+                    String groupName = (String) serviceResult.get("groupName");
+                    Long actualPostId = (Long) serviceResult.get("postId");
+                    String applicantId = (String) serviceResult.get("applicantId");
+                    
+                    System.out.println("알림 데이터 - 받는이: " + creatorId + ", 모임명: " + groupName + ", 신청자: " + applicantId);
+                    
+                    GroupApplyNotificationRequestDto notificationRequest = GroupApplyNotificationRequestDto.builder()
+                        .creatorId(creatorId)           // 모임 작성자에게 알림
+                        .groupName(groupName)
+                        .groupId(actualPostId.intValue()) // 이거 필요 없는 거 같은뎁쇼
+                        .relatedUrl("/traveler/my/travelmate")
+                        .applicantId(applicantId)
+                        .build();
+                    
+                    System.out.println("알림 요청 객체 생성 완료: " + notificationRequest);
+                    
+                    ResponseEntity<Map<String, Object>> notificationResponse = 
+                        notificationClient.createGroupApplyNotification(notificationRequest);
+                    
+                    System.out.println("[TravelmateController] 여행 모임 참여 신청 알림 발송 성공: " + notificationResponse.getBody());
+                    
+                } catch (Exception notificationError) {
+                    System.out.println("[TravelmateController] 여행 모임 참여 신청 알림 발송 실패: " + notificationError.getMessage());
+                    // 알림 실패해도 참여 신청은 성공으로 처리
+                }
+            }
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true, 
+            "message", "참여 신청이 완료되었습니다.",
+            "status", "PENDING"
+        ));
+        
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
     }
+}
 
     @GetMapping("/com/travelmate/{postId}/members")
     public ResponseEntity<List<TravelmateMemberDto>> getTravelmateMembers(@PathVariable Long postId) {
@@ -432,8 +475,64 @@ public class TravelmateMainController {
                 return ResponseEntity.badRequest().body(Map.of("error", "잘못된 액션입니다."));
             }
             
-            travelmateService.processApplication(travelmateId, applicationId, action, currentUserId);
+            Map<String, Object> serviceResult = travelmateService.processApplication(travelmateId, applicationId, action, currentUserId);
+            if (serviceResult.get("needNotification") != null && (Boolean) serviceResult.get("needNotification")) {
+            System.out.println("여행 모임 신청 처리 알림 시작");
             
+            try {
+                String processedAction = (String) serviceResult.get("action");
+                String applicantId = (String) serviceResult.get("applicantId");
+                String groupName = (String) serviceResult.get("groupName");
+                Long groupId = (Long) serviceResult.get("groupId");
+                String hostId = (String) serviceResult.get("hostId");
+                
+                System.out.println("알림 데이터 - 받는이: " + applicantId + ", 모임: " + groupName + ", 처리결과: " + processedAction);
+
+                System.out.println("=== 여행 모임 알림 데이터 검증 시작 ===");
+                System.out.println("processedAction: '" + processedAction + "'");
+                System.out.println("applicantId: '" + applicantId + "' (length: " + (applicantId != null ? applicantId.length() : "null") + ")");
+                System.out.println("groupName: '" + groupName + "' (length: " + (groupName != null ? groupName.length() : "null") + ")");
+                System.out.println("groupId: " + groupId + " (type: " + (groupId != null ? groupId.getClass().getSimpleName() : "null") + ")");
+                System.out.println("hostId: '" + hostId + "' (length: " + (hostId != null ? hostId.length() : "null") + ")");
+                
+                
+                if ("accept".equals(processedAction)) {
+                    // 수락 알림
+                    GroupAcceptedNotificationRequestDto acceptNotification = GroupAcceptedNotificationRequestDto.builder()
+                        .applicantId(applicantId)        // 신청자에게 알림
+                        .groupName(groupName)
+                        .groupId(groupId.intValue())
+                        .relatedUrl("/traveler/mate/" + groupId)
+                        .creatorId(hostId)
+                        .build();
+                    
+                    ResponseEntity<Map<String, Object>> notificationResponse = 
+                        notificationClient.createGroupAcceptedNotification(acceptNotification);
+                    
+                    System.out.println("[TravelmateController] 여행 모임 수락 알림 발송 성공: " + notificationResponse.getBody());
+                }
+                    
+                //  else if ("reject".equals(processedAction)) {
+                //     // 거절 알림
+                //     GroupAcceptedNotificationRequestDto rejectNotification = GroupAcceptedNotificationRequestDto.builder()
+                //         .applicantId(applicantId)        // 신청자에게 알림
+                //         .groupName(groupName)
+                //         .groupId(groupId.intValue())
+                //         .relatedUrl("/traveler/mate/" + groupId)
+                //         .creatorId(hostId)
+                //         .build();
+                    
+                //     ResponseEntity<Map<String, Object>> notificationResponse = 
+                //         notificationClient.createGroupRejectNotification(rejectNotification);
+                    
+                //     System.out.println("[TravelmateController] 여행 모임 거절 알림 발송 성공: " + notificationResponse.getBody());
+                // }
+                
+            } catch (Exception notificationError) {
+                System.out.println("[TravelmateController] 여행 모임 신청 처리 알림 발송 실패: " + notificationError.getMessage());
+                // 알림 실패해도 신청 처리는 성공으로 처리
+            }
+        }
             String message = action.equals("accept") ? "신청을 수락했습니다." : "신청을 거절했습니다.";
             return ResponseEntity.ok(Map.of(
                 "success", true,

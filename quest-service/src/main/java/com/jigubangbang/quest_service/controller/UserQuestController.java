@@ -187,51 +187,72 @@ public class UserQuestController {
     //퀘스트 완료 제출
     @PostMapping("/{quest_user_id}/complete")
     public ResponseEntity<Map<String, Object>> completeQuest(
-        @PathVariable("quest_user_id") int quest_user_id,
-        @RequestBody QuestCerti completeRequest)
-    {
-        try {
-            Map<String, Object> response = userQuestService.completeQuest(quest_user_id, completeRequest);
-            
-            // // 예시 (테스트용 하드코딩) =================================================
-            // if (response.get("success") != null && (Boolean) response.get("success")) {
-            //         BadgeNotificationRequestDto request = BadgeNotificationRequestDto.builder()
-            //             .userId(String.valueOf(quest_user_id))
-            //             .badgeName("지하탐험가")
-            //             .message(null)
-            //             .badgeId(24)
-            //             .relatedUrl("/quests/badges/24")
-            //             .senderId("SYSTEM") // 시스템
-            //             .senderProfileImage(null)
-            //             .build();
-            //         try {
-            //             ResponseEntity<Map<String, Object>> notificationResponse = notificationClient.createBadgeEarnedNotification(request);
-            //             System.out.println("[UserQuestController] 뱃지 알림 발송 성공: " + notificationResponse.getBody());
-                        
-            //             // 알림 발송 성공 정보를 응답에 추가
-            //             response.put("notificationSent", true);
-            //             response.put("badgeName", "테스트 뱃지");
-                        
-            //         } catch (Exception notificationError) {
-            //             System.out.println("[UserQuestController] 뱃지 알림 발송 실패: " + notificationError.getMessage());
-                        
-            //             // 알림 실패해도 퀘스트 완료는 성공으로 처리
-            //             response.put("notificationSent", false);
-            //             response.put("notificationError", notificationError.getMessage());
-            //         }
-            //     // ====================================================================
-                
-            //     }
-            return ResponseEntity.ok(response);    
-        } catch (Exception e) {
-            System.out.println("[UserQuestController] 퀘스트 완료 처리 실패: " + e.getMessage());
-            return ResponseEntity.status(500).body(Map.of(
-                "success", false,
-                "message", "퀘스트 완료 처리에 실패했습니다: " + e.getMessage()
-            ));
-        }
-    }
+        @PathVariable int quest_user_id,
+        @RequestBody QuestCerti request) {
 
+    Map<String, Object> response = userQuestService.completeQuest(quest_user_id, request);
+
+    // 배지 획득 여부 체크
+    Object badgeAwardedObj = response.get("badgeAwarded");
+
+    if (badgeAwardedObj != null && (Boolean) badgeAwardedObj) {
+        System.out.println("배지가 획득됨 - 알림 처리 시작");
+        
+        Object badgeDetailsObj = response.get("badgeDetails");
+  
+        if (badgeDetailsObj instanceof List<?>) {
+            List<?> badgeDetailsList = (List<?>) badgeDetailsObj;
+            System.out.println("badgeDetailsList 크기: " + badgeDetailsList.size());
+            
+            for (int i = 0; i < badgeDetailsList.size(); i++) {
+                Object badgeInfoObj = badgeDetailsList.get(i);
+                System.out.println("배지 " + i + " 정보: " + badgeInfoObj);
+                
+                if (badgeInfoObj instanceof Map<?, ?>) {
+                    Map<?, ?> badgeInfoMap = (Map<?, ?>) badgeInfoObj;
+                    System.out.println("배지 맵 내용: " + badgeInfoMap);
+                    
+                    try {
+                        
+                        String userId = String.valueOf(badgeInfoMap.get("userId"));
+                        String badgeName = String.valueOf(badgeInfoMap.get("badgeName"));
+                        Integer badgeId = (Integer) badgeInfoMap.get("badgeId");
+
+                        BadgeNotificationRequestDto notificationRequest = BadgeNotificationRequestDto.builder()
+                            .userId(userId)
+                            .badgeName(badgeName)
+                            .message(null)
+                            .badgeId(badgeId)
+                            .relatedUrl("/my-quest/badge")
+                            .senderId("jigubang")
+                            .senderProfileImage(null)
+                            .build();
+                        
+                        ResponseEntity<Map<String, Object>> notificationResponse = 
+                            notificationClient.createBadgeEarnedNotification(notificationRequest);
+                        
+                        System.out.println("[UserQuestController] 뱃지 알림 발송 성공: " + notificationResponse.getBody());
+                        
+                    } catch (Exception notificationError) {
+                        System.out.println("[UserQuestController] 뱃지 알림 발송 실패: " + notificationError.getMessage());
+                        notificationError.printStackTrace();
+                    }
+                } else {
+                    System.out.println("badgeInfoObj가 Map이 아님: " + badgeInfoObj.getClass());
+                }
+            }
+            
+            response.put("notificationProcessed", true);
+        } else {
+            System.out.println("badgeDetailsObj가 List가 아님");
+        }
+    } else {
+        System.out.println("배지가 획득되지 않음 또는 badgeAwarded가 false");
+    }
+    
+    System.out.println("=== Controller: completeQuest 완료 ===");
+    return ResponseEntity.ok(response);
+}
     //퀘스트 포기
     @PostMapping("/{quest_user_id}/abandon")
     public ResponseEntity<Map<String, Object>> abandonQuest(

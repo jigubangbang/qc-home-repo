@@ -142,5 +142,6 @@ public interface TravelmateMapper {
                     @Param("groupType") String groupType, 
                     @Param("groupId") Long groupId);
 
-
+    //댓글
+    String findPostTitle(Long postId);
 }

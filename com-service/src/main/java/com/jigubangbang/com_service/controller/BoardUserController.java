@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jigubangbang.com_service.chat_service.NotificationServiceClient;
 import com.jigubangbang.com_service.model.BoardCreateResponse;
 import com.jigubangbang.com_service.model.BookmarkResponse;
 import com.jigubangbang.com_service.model.BookmarkStatusResponse;
@@ -24,6 +25,7 @@ import com.jigubangbang.com_service.model.CreateCommentRequest;
 import com.jigubangbang.com_service.model.LikeResponse;
 import com.jigubangbang.com_service.model.LikeStatusResponse;
 import com.jigubangbang.com_service.model.UpdateBoardRequest;
+import com.jigubangbang.com_service.model.chat_service.ComNotificationRequestDto;
 import com.jigubangbang.com_service.service.BoardService;
 
 @RestController
@@ -31,6 +33,9 @@ import com.jigubangbang.com_service.service.BoardService;
 public class BoardUserController {
     @Autowired
     private BoardService boardService;
+
+    @Autowired
+    private NotificationServiceClient notificationClient;
 
     //북마크
     @GetMapping("/bookmark/{postId}/status")
@@ -157,12 +162,45 @@ public class BoardUserController {
             @RequestHeader("User-Id") String userId) {
         
         try {
-            boardService.createBoardComment(postId, userId, request.getContent());
-            return ResponseEntity.ok(Map.of("success", true, "message", "댓글이 등록되었습니다."));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        System.out.println("=== 댓글 작성 시작 ===");
+        Map<String, Object> serviceResult = boardService.createBoardComment(postId, userId, request.getContent());
+        
+        // 알림 처리
+        if (serviceResult.get("needNotification") != null && (Boolean) serviceResult.get("needNotification")) {
+            System.out.println("댓글 알림 처리 시작");
+            
+            try {
+                String postAuthorId = (String) serviceResult.get("postAuthorId");
+                String postTitle = (String) serviceResult.get("postTitle");
+                String commenterId = (String) serviceResult.get("commenterId");
+                
+                System.out.println("알림 데이터 - 받는이: " + postAuthorId + ", 게시글: " + postTitle);
+
+                ComNotificationRequestDto notificationRequest = ComNotificationRequestDto.builder()
+                    .authorId(postAuthorId)  // 게시글 작성자에게 알림
+                    .postId(postId)
+                    .relatedUrl("/board/" + postId)
+                    .senderId(commenterId)
+                    .senderProfileImage(null)
+                    .build();
+                
+                ResponseEntity<Map<String, Object>> notificationResponse = 
+                    notificationClient.createPostCommentNotification(notificationRequest);
+                
+                System.out.println("[BoardController] 댓글 알림 발송 성공: " + notificationResponse.getBody());
+                
+            } catch (Exception notificationError) {
+                System.out.println("[BoardController] 댓글 알림 발송 실패: " + notificationError.getMessage());
+                // 알림 실패해도 댓글 작성은 성공으로 처리
+            }
         }
+        
+        return ResponseEntity.ok(Map.of("success", true, "message", "댓글이 등록되었습니다."));
+        
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
     }
+}
 
     // 대댓글 등록
     @PostMapping("/{postId}/comments/{parentId}/replies")

@@ -15,16 +15,14 @@ import com.jigubangbang.com_service.model.chat_service.GroupApplyNotificationReq
 public interface NotificationServiceClient {
 
     // 게시물 댓글 알림
-    @PostMapping("/posts/comment")
+    @PostMapping("/notifications/posts/comment")
     ResponseEntity<Map<String, Object>> createPostCommentNotification(@RequestBody ComNotificationRequestDto request);
-    
-    // 투표기한 만료 알림(선택사항)
 
     // 그룹 가입 신청 알림
-    @PostMapping("/travelgroup/applications")
+    @PostMapping("/notifications/travelgroup/applications")
     public ResponseEntity<Map<String, Object>> createGroupApplyNotification(@RequestBody GroupApplyNotificationRequestDto request);
 
     // 그룹 가입 알림
-    @PostMapping("/travelgroup/applications/{applicantId}")
+    @PostMapping("/notifications/travelgroup/applications/accepted")
     public ResponseEntity<Map<String, Object>> createGroupAcceptedNotification(@RequestBody GroupAcceptedNotificationRequestDto request);
 }

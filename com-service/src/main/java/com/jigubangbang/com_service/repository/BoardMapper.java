@@ -86,4 +86,9 @@ public interface BoardMapper {
     // 좋아요한 글 관련 (페이지네이션 지원)
     List<Integer> getLikedPostIds(Map<String, Object> params);
     int getLikedPostsCount(Map<String, Object> params);
+
+    //알림
+    String getBoardPostAuthor(Integer postId);
+    String getBoardPostTitle(Integer postId);
+    String getBoardCommentAuthor(Integer commentId);
 }

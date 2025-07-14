@@ -201,12 +201,15 @@ public class AdminQuestService {
 
 
     @Transactional
-    public void rejectQuest(int quest_user_id, int quest_id, int xp, String user_id) {
+    public Map<String, Object> rejectQuest(int quest_user_id, int quest_id, int xp, String user_id) {
         String currentStatus = adminQuestMapper.getQuestUserStatus(quest_user_id);
         if (!"COMPLETED".equals(currentStatus)) {
             throw new IllegalStateException("완료된 퀘스트만 취소할 수 있습니다");
         }
         
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> removedBadges = new ArrayList<>();
+
         try {
             adminQuestMapper.updateQuestUserReject(quest_user_id);
             adminQuestMapper.deleteQuestImage(quest_user_id);
@@ -227,8 +230,11 @@ public class AdminQuestService {
                     int isBadgeRemoved = adminQuestMapper.deleteBadgeUser(params2);
 
                     if(isBadgeRemoved > 0){
-                        System.out.println("뱃지 없어짐1!!!");
-                        //#NeedToChange알림
+                        Map<String, Object> badgeInfo = new HashMap<>();
+                        badgeInfo.put("badgeId", badge_id);
+                        badgeInfo.put("badgeName", adminQuestMapper.getBadgeNameById(badge_id));
+                        badgeInfo.put("userId", user_id);
+                        removedBadges.add(badgeInfo);
                     }
                 }
             }
@@ -239,9 +245,14 @@ public class AdminQuestService {
             
             adminQuestMapper.updateUserXp(params);
             adminQuestMapper.updateUserLevel(user_id);
+
+            result.put("success", true);
+            result.put("badgeRemoved", !removedBadges.isEmpty());
+            result.put("removedBadges", removedBadges);
         } catch (Exception e) {
             throw new RuntimeException("퀘스트 인증 취소 중 오류 발생", e);
         }
+        return result;
     }
 
     public BadgeIdCheckResponse checkBadgeIdAvailability(int questId) {

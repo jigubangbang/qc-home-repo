@@ -802,4 +802,10 @@
         WHERE id = #{travelmateId}
         AND status != 'DELETED'
     </select>
+
+        <select id="findPostTitle" parameterType="long" resultType="string">
+        SELECT title 
+        FROM travelmate_post
+        WHERE id = #{postId}
+    </select>
 </mapper>

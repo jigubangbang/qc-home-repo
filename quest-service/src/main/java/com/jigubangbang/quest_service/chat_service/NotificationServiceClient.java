@@ -13,10 +13,10 @@ import com.jigubangbang.quest_service.model.chat_service.BadgeNotificationReques
 public interface NotificationServiceClient {
 
     // 뱃지 획득 알림
-    @PostMapping("/quests/badges/earned")
+    @PostMapping("/notifications/quests/badges/earned")
     public ResponseEntity<Map<String, Object>> createBadgeEarnedNotification(@RequestBody BadgeNotificationRequestDto request);
     
     // 뱃지 수거 알림 (관리자가 점검 후 뱃지 취소)
-    @PostMapping("/admin/badges/revoked")
+    @PostMapping("/notifications/admin/badges/revoked")
     public ResponseEntity<Map<String, Object>> createBadgeRevokedNotification(@RequestBody BadgeNotificationRequestDto request);
 }

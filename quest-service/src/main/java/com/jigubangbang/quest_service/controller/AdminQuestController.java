@@ -18,9 +18,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jigubangbang.quest_service.chat_service.NotificationServiceClient;
 import com.jigubangbang.quest_service.model.AdminQuestDetailDto;
 import com.jigubangbang.quest_service.model.BadgeIdCheckResponse;
 import com.jigubangbang.quest_service.model.QuestDto;
+import com.jigubangbang.quest_service.model.chat_service.BadgeNotificationRequestDto;
 import com.jigubangbang.quest_service.service.AdminQuestService;
 
 @RestController
@@ -28,6 +30,9 @@ import com.jigubangbang.quest_service.service.AdminQuestService;
 public class AdminQuestController {
     @Autowired
     private AdminQuestService adminQuestService;
+
+    @Autowired
+    private NotificationServiceClient notificationClient;
 
     @GetMapping("/list")
     public ResponseEntity<Map<String, Object>> getQuestList(
@@ -140,17 +145,6 @@ public class AdminQuestController {
         return ResponseEntity.noContent().build();
     }
 
-    //퀘스트 인증 목록 조회 (모든 퀘스트)
-    // @GetMapping("/certi-list")
-    // public Map<String, Object> getAdminQuestList(
-    //     @RequestParam(defaultValue="1") int pageNum,
-    //     @RequestParam(required=false) String sortOption,
-    //     @RequestParam(required=false) String status
-    // ){
-    //     return adminQuestService.getQuestCertiList(pageNum, sortOption, status); 
-    // }
-
-    //퀘스트 인증 상세 조회
     
     @PutMapping("/quests-certi/{quest_user_id}/reject")
     public ResponseEntity<Map<String, Object>> rejectQuest(
@@ -158,14 +152,73 @@ public class AdminQuestController {
         @RequestBody Map<String, Object> requestBody
     ){
         
-        Map<String, Object> response = new HashMap<>();
-        
         int xp = (Integer) requestBody.get("xp");
         String user_id = (String) requestBody.get("user_id");
         int quest_id = (Integer) requestBody.get("quest_id");
-        adminQuestService.rejectQuest(quest_user_id, quest_id, xp, user_id);
+        Map<String, Object> serviceResult = adminQuestService.rejectQuest(quest_user_id, quest_id, xp, user_id);
+        Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "퀘스트 인증 취소 완료");
+
+        // 배지 제거 시 알림 처리
+        if (serviceResult.get("badgeRemoved") != null && (Boolean) serviceResult.get("badgeRemoved")) {
+            System.out.println("제거된 배지가 있음 - 알림 처리 시작");
+            
+            Object removedBadgesObj = serviceResult.get("removedBadges");
+            
+            if (removedBadgesObj instanceof List<?>) {
+                List<?> removedBadgesList = (List<?>) removedBadgesObj;
+                System.out.println("제거된 배지 수: " + removedBadgesList.size());
+                
+                for (Object badgeInfoObj : removedBadgesList) {
+                    if (badgeInfoObj instanceof Map<?, ?>) {
+                        Map<?, ?> badgeInfoMap = (Map<?, ?>) badgeInfoObj;
+                        
+                        try {
+                            String userId = String.valueOf(badgeInfoMap.get("userId"));
+                            String badgeName = String.valueOf(badgeInfoMap.get("badgeName"));
+                            Integer badgeId = (Integer) badgeInfoMap.get("badgeId");
+                            
+                            System.out.println("배지 제거 알림 데이터 - userId: " + userId + ", badgeName: " + badgeName + ", badgeId: " + badgeId);
+                            
+                            // 배지 제거 알림용 DTO (기존 BadgeNotificationRequestDto 재사용 또는 새로 만들기)
+
+                            //여기서 이동을 문의로 하고 싶어요
+                            //07-15
+                            BadgeNotificationRequestDto notificationRequest = BadgeNotificationRequestDto.builder()
+                                .userId(userId)
+                                .badgeName(badgeName)
+                                .message(null)
+                                .badgeId(badgeId)
+                                .relatedUrl("/my-quest/badge")
+                                .senderId("jigubang")
+                                .senderProfileImage(null)
+                                .build();
+                            
+                            System.out.println("배지 제거 알림 요청 시작...");
+                            
+                            // 배지 제거 알림 API 호출 (새로운 엔드포인트 필요)
+                            ResponseEntity<Map<String, Object>> notificationResponse = 
+                                notificationClient.createBadgeRevokedNotification(notificationRequest);
+                            
+                            System.out.println("[AdminQuestController] 배지 제거 알림 발송 성공: " + notificationResponse.getBody());
+                            
+                        } catch (Exception notificationError) {
+                            System.out.println("[AdminQuestController] 배지 제거 알림 발송 실패: " + notificationError.getMessage());
+                            // 알림 실패해도 퀘스트 취소는 성공으로 처리
+                        }
+                    }
+                }
+                
+                response.put("notificationProcessed", true);
+            }
+        } else {
+            System.out.println("제거된 배지 없음");
+        }
+        
+        System.out.println("=== 퀘스트 취소 완료 ===");
+
+
         return ResponseEntity.ok(response);
     }
 }

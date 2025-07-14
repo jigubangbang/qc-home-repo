@@ -368,7 +368,7 @@ public class BoardService {
         return parentComments;
     }
 
-    public void createBoardComment(Integer postId, String userId, String content) {
+    public Map<String, Object> createBoardComment(Integer postId, String userId, String content) {
         // 내용 유효성 검증
         if (content == null || content.trim().isEmpty()) {
             throw new IllegalArgumentException("댓글 내용을 입력해주세요.");
@@ -383,12 +383,24 @@ public class BoardService {
         if (!postExists) {
             throw new IllegalArgumentException("존재하지 않는 게시글입니다.");
         }
-        
+
+         // 게시글 작성자 정보 조회 (알림용)
+        String postAuthorId = boardMapper.getBoardPostAuthor(postId);
+            
         // 댓글 생성 (level 0, parentId null)
         boardMapper.insertBoardComment(userId, postId, content.trim(), 0, null);
+
+        // 알림 정보 반환
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("needNotification", !userId.equals(postAuthorId)); // 본인 댓글은 알림 X
+        result.put("postAuthorId", postAuthorId);
+        result.put("commenterId", userId);
+        
+        return result;
     }
 
-    public void createBoardReply(Integer postId, Integer parentId, String userId, String content) {
+    public Map<String, Object> createBoardReply(Integer postId, Integer parentId, String userId, String content) {
         // 부모 댓글 존재 여부 확인
         boolean parentExists = boardMapper.existsBoardComment(parentId, postId);
         if (!parentExists) {
@@ -409,9 +421,19 @@ public class BoardService {
         if (content.length() > 1000) {
             throw new IllegalArgumentException("답변은 1000자 이내로 작성해주세요.");
         }
+
+        String parentCommentAuthorId = boardMapper.getBoardCommentAuthor(parentId);
         
         // 답변 생성 (level 1, parentId 설정)
         boardMapper.insertBoardComment(userId, postId, content.trim(), 1, parentId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("needNotification", !userId.equals(parentCommentAuthorId)); 
+        result.put("parentCommentAuthorId", parentCommentAuthorId);
+        result.put("replierId", userId);
+        
+        return result;
     }
 
     public void updateBoardComment(Integer postId, Integer commentId, String userId, String content) {

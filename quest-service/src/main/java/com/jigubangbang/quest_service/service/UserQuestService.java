@@ -148,10 +148,19 @@ public class UserQuestService {
             if (!awardedBadges.isEmpty()){
                 result.put("badgeAwarded", true);
                 result.put("awardedBadges", awardedBadges);
+
+                List<Map<String, Object>> badgeDetails = new ArrayList<>();
+                for (Integer badgeId : awardedBadges) {
+                    Map<String, Object> badgeInfo = new HashMap<>();
+                    badgeInfo.put("badgeId", badgeId);
+                    badgeInfo.put("badgeName", adminQuestMapper.getBadgeNameById(badgeId));
+                    badgeInfo.put("userId", questCerti.getUser_id());
+                    badgeDetails.add(badgeInfo);
+                }
+                result.put("badgeDetails", badgeDetails);
             }
         }
         return result;
-        //#NeedToChange알림
     }
 
     private List<Integer> checkAndAwardBadges(String user_id, int completed_quest_id){
@@ -179,33 +188,12 @@ public class UserQuestService {
                     String badge_name = adminQuestMapper.getBadgeNameById(badge_id);
                     awardedBadges.add(badge_id);
 
-                    sendBadgeNotification(user_id, badge_name, badge_id);
                 }
             }
 
         }
 
         return awardedBadges;
-    }
-
-    private void sendBadgeNotification(String user_id, String badge_name, int badge_id) {
-        try {
-            BadgeNotificationRequestDto request = BadgeNotificationRequestDto.builder()
-                .userId(user_id)
-                .badgeName(badge_name)
-                .message("축하합니다! 새로운 뱃지를 획득했습니다.")
-                .badgeId(badge_id)
-                .relatedUrl("/my-quest/badge")
-                .senderId("SYSTEM")
-                .senderProfileImage(null)
-                .build();
-                
-            ResponseEntity<Map<String, Object>> response = notificationClient.createBadgeEarnedNotification(request);
-            System.out.println("[UserQuestService] 뱃지 알림 발송 성공: " + response.getBody());
-            
-        } catch (Exception e) {
-            System.out.println("[UserQuestService] 뱃지 알림 발송 실패 : " + e.getMessage());
-        }
     }
 
     public void abandonQuest(int quest_user_id){
