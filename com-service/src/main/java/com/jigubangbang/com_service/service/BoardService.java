@@ -570,4 +570,196 @@ public class BoardService {
             throw new IllegalArgumentException("올바르지 않은 카테고리입니다.");
         }
     }
+
+    public BoardListResponse getMyPosts(String userId, int pageNum, String sortOption, int limit) {
+        // 페이지 설정
+        int pageSize = limit;
+        int offset = (pageNum - 1) * pageSize;
+
+        // 파라미터 맵 구성
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("offset", offset);
+        params.put("limit", pageSize);
+        
+        // 정렬 옵션 처리
+        String orderBy = getOrderByClause(sortOption);
+        params.put("orderBy", orderBy);
+
+        // 내가 쓴 글 목록 조회
+        List<BoardDto> posts = boardMapper.getMyPosts(params);
+        
+        // 전체 게시글 수 조회
+        int totalPosts = boardMapper.getMyPostsCount(params);
+        
+        // 페이지 정보 계산
+        int totalPages = (int) Math.ceil((double) totalPosts / pageSize);
+        boolean hasNext = pageNum < totalPages;
+        boolean hasPrevious = pageNum > 1;
+
+        return BoardListResponse.builder()
+                .posts(posts)
+                .currentPage(pageNum)
+                .totalPages(totalPages)
+                .totalPosts(totalPosts)
+                .hasNext(hasNext)
+                .hasPrevious(hasPrevious)
+                .build();
+    }
+
+    // 내가 댓글 단 글 조회 (페이지네이션, 정렬 지원)
+    public Map<String, Object> getMyCommentedPosts(String userId, int pageNum, String sortOption, int limit) {
+        // 페이지 설정
+        int pageSize = limit;
+        int offset = (pageNum - 1) * pageSize;
+
+        // 파라미터 맵 구성
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("offset", offset);
+        params.put("limit", pageSize);
+        
+        // 정렬 옵션 처리 (댓글 작성 시간 기준)
+        String orderBy = getCommentOrderByClause(sortOption);
+        params.put("orderBy", orderBy);
+
+        // 내가 댓글 단 글 목록 조회 (댓글 내용 포함)
+        List<Map<String, Object>> comments = boardMapper.getMyCommentedPosts(params);
+        
+        // 전체 개수 조회
+        int totalComments = boardMapper.getMyCommentedPostsCount(params);
+        
+        // 페이지 정보 계산
+        int totalPages = (int) Math.ceil((double) totalComments / pageSize);
+        boolean hasNext = pageNum < totalPages;
+        boolean hasPrevious = pageNum > 1;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("comments", comments);
+        result.put("currentPage", pageNum);
+        result.put("totalPages", totalPages);
+        result.put("totalComments", totalComments);
+        result.put("hasNext", hasNext);
+        result.put("hasPrevious", hasPrevious);
+        
+        return result;
+    }
+
+    // 북마크한 글 조회 (페이지네이션, 정렬 지원)
+    public Map<String, Object> getBookmarkedPosts(String userId, int pageNum, String sortOption, int limit) {
+        // 페이지 설정
+        int pageSize = limit;
+        int offset = (pageNum - 1) * pageSize;
+
+        // 파라미터 맵 구성
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("offset", offset);
+        params.put("limit", pageSize);
+        
+        // 정렬 옵션 처리 (북마크 시간 기준)
+        String orderBy = getBookmarkOrderByClause(sortOption);
+        params.put("orderBy", orderBy);
+
+        // 북마크한 글 ID 목록 조회
+        List<Integer> bookmarkedPostIds = boardMapper.getBookmarkedPostIds(params);
+        
+        // 전체 북마크 개수 조회
+        int totalBookmarks = boardMapper.getBookmarkedPostsCount(params);
+        
+        // 페이지 정보 계산
+        int totalPages = (int) Math.ceil((double) totalBookmarks / pageSize);
+        boolean hasNext = pageNum < totalPages;
+        boolean hasPrevious = pageNum > 1;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("bookmarkedPostIds", bookmarkedPostIds);
+        result.put("currentPage", pageNum);
+        result.put("totalPages", totalPages);
+        result.put("totalBookmarks", totalBookmarks);
+        result.put("hasNext", hasNext);
+        result.put("hasPrevious", hasPrevious);
+        
+        return result;
+    }
+
+    // 좋아요한 글 조회 (페이지네이션, 정렬 지원)
+    public Map<String, Object> getLikedPosts(String userId, int pageNum, String sortOption, int limit) {
+        // 페이지 설정
+        int pageSize = limit;
+        int offset = (pageNum - 1) * pageSize;
+
+        // 파라미터 맵 구성
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("offset", offset);
+        params.put("limit", pageSize);
+        
+        // 정렬 옵션 처리 (좋아요 시간 기준)
+        String orderBy = getLikeOrderByClause(sortOption);
+        params.put("orderBy", orderBy);
+
+        // 좋아요한 글 ID 목록 조회
+        List<Integer> likedPostIds = boardMapper.getLikedPostIds(params);
+        
+        // 전체 좋아요 개수 조회
+        int totalLikes = boardMapper.getLikedPostsCount(params);
+        
+        // 페이지 정보 계산
+        int totalPages = (int) Math.ceil((double) totalLikes / pageSize);
+        boolean hasNext = pageNum < totalPages;
+        boolean hasPrevious = pageNum > 1;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("likedPostIds", likedPostIds);
+        result.put("currentPage", pageNum);
+        result.put("totalPages", totalPages);
+        result.put("totalLikes", totalLikes);
+        result.put("hasNext", hasNext);
+        result.put("hasPrevious", hasPrevious);
+        
+        return result;
+    }
+
+    // 댓글 정렬 옵션 처리
+    private String getCommentOrderByClause(String sortOption) {
+        switch (sortOption.toLowerCase()) {
+            case "latest":
+                return "bc.created_at DESC";
+            case "oldest":
+                return "bc.created_at ASC";
+            case "popular":
+                return "(bp.like_count + bp.bookmark_count + bp.view_count) DESC, bc.created_at DESC";
+            default:
+                return "bc.created_at DESC";
+        }
+    }
+
+    // 북마크 정렬 옵션 처리
+    private String getBookmarkOrderByClause(String sortOption) {
+        switch (sortOption.toLowerCase()) {
+            case "latest":
+                return "bb.created_at DESC";
+            case "oldest":
+                return "bb.created_at ASC";
+            case "popular":
+                return "(bp.like_count + bp.bookmark_count + bp.view_count) DESC, bb.created_at DESC";
+            default:
+                return "bb.created_at DESC";
+        }
+    }
+
+    // 좋아요 정렬 옵션 처리
+    private String getLikeOrderByClause(String sortOption) {
+        switch (sortOption.toLowerCase()) {
+            case "latest":
+                return "bl.created_at DESC";
+            case "oldest":
+                return "bl.created_at ASC";
+            case "popular":
+                return "(bp.like_count + bp.bookmark_count + bp.view_count) DESC, bl.created_at DESC";
+            default:
+                return "bl.created_at DESC";
+        }
+    }
 }

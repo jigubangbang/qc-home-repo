@@ -69,4 +69,21 @@ public interface BoardMapper {
                     @Param("title") String title,
                     @Param("content") String content);
     void deleteBoardImages(@Param("postId") Integer postId);
+
+    //내 게시판 조회
+    // 내가 쓴 글 관련
+    List<BoardDto> getMyPosts(Map<String, Object> params);
+    int getMyPostsCount(Map<String, Object> params);
+
+    // 내가 댓글 단 글 관련
+    List<Map<String, Object>> getMyCommentedPosts(Map<String, Object> params);
+    int getMyCommentedPostsCount(Map<String, Object> params);
+
+    // 북마크한 글 관련 (페이지네이션 지원)
+    List<Integer> getBookmarkedPostIds(Map<String, Object> params);
+    int getBookmarkedPostsCount(Map<String, Object> params);
+
+    // 좋아요한 글 관련 (페이지네이션 지원)
+    List<Integer> getLikedPostIds(Map<String, Object> params);
+    int getLikedPostsCount(Map<String, Object> params);
 }
