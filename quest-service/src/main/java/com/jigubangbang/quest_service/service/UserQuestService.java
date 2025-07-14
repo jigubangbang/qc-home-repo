@@ -7,9 +7,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.jigubangbang.quest_service.chat_service.NotificationServiceClient;
 import com.jigubangbang.quest_service.model.BadgeDto;
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.QuestDto;
@@ -18,6 +20,7 @@ import com.jigubangbang.quest_service.model.QuestModalDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
 import com.jigubangbang.quest_service.model.QuestUserDto;
 import com.jigubangbang.quest_service.model.UserJourneyDto;
+import com.jigubangbang.quest_service.model.chat_service.BadgeNotificationRequestDto;
 import com.jigubangbang.quest_service.repository.AdminQuestMapper;
 import com.jigubangbang.quest_service.repository.QuestMapper;
 import com.jigubangbang.quest_service.repository.UserQuestMapper;
@@ -32,6 +35,9 @@ public class UserQuestService {
     
     @Autowired
     private AdminQuestMapper adminQuestMapper;
+
+    @Autowired
+    private NotificationServiceClient notificationClient;
 
     public QuestModalDto getQuestModalById(String current_user_id, int quest_id){
         Map<String, Object> params = new HashMap<>();
@@ -170,13 +176,36 @@ public class UserQuestService {
                     badgeParams.put("user_id", user_id);
                     badgeParams.put("badge_id", badge_id);
                     adminQuestMapper.insertUserBadge(badgeParams);
-
+                    String badge_name = adminQuestMapper.getBadgeNameById(badge_id);
                     awardedBadges.add(badge_id);
+
+                    sendBadgeNotification(user_id, badge_name, badge_id);
                 }
             }
+
         }
 
         return awardedBadges;
+    }
+
+    private void sendBadgeNotification(String user_id, String badge_name, int badge_id) {
+        try {
+            BadgeNotificationRequestDto request = BadgeNotificationRequestDto.builder()
+                .userId(user_id)
+                .badgeName(badge_name)
+                .message("축하합니다! 새로운 뱃지를 획득했습니다.")
+                .badgeId(badge_id)
+                .relatedUrl("/my-quest/badge")
+                .senderId("SYSTEM")
+                .senderProfileImage(null)
+                .build();
+                
+            ResponseEntity<Map<String, Object>> response = notificationClient.createBadgeEarnedNotification(request);
+            System.out.println("[UserQuestService] 뱃지 알림 발송 성공: " + response.getBody());
+            
+        } catch (Exception e) {
+            System.out.println("[UserQuestService] 뱃지 알림 발송 실패 : " + e.getMessage());
+        }
     }
 
     public void abandonQuest(int quest_user_id){

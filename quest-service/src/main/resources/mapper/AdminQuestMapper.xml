@@ -13,6 +13,10 @@
             AND status = 'ACTIVE';
     </update>
 
+    <select id="getBadgeNameById" parameterType="int" resultType="String">
+        SELECT kor_title FROM badge where id=#{badge_id}
+    </select>
+
     <select id="selectQuestList" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestDto">
         SELECT 
             q.id as quest_id,

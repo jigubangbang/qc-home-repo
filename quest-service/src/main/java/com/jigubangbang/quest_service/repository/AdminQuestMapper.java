@@ -68,5 +68,7 @@ public interface AdminQuestMapper {
     List<Integer> getQuestUserIds(int quest_id);
     int deleteQuestUser(int quest_user_id);
     int deleteBadgeQuest(int quest_id);
+
+    String getBadgeNameById(int badge_id);
 }
 
