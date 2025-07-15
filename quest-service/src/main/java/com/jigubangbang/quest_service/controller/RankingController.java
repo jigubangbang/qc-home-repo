@@ -65,7 +65,7 @@ public class RankingController {
         RankingDto nullRanking = new RankingDto();
         nullRanking.setUser_id("No Person");
         nullRanking.setNickname("null");
-        nullRanking.setProfile_image("/icons/common/user_profile.svg");
+        nullRanking.setProfile_image("/icons/common/default_profile.png");
         nullRanking.setLevel(0);
         nullRanking.setWeekly_quest_count(0);
         nullRanking.setWeekly_level_gain(0);
