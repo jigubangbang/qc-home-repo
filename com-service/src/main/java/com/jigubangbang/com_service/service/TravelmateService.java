@@ -29,6 +29,7 @@ import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
 import com.jigubangbang.com_service.model.TravelmatePostDto;
 import com.jigubangbang.com_service.model.TravelmateResponseDto;
+import com.jigubangbang.com_service.model.TravelmateStatusDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateRequest;
 import com.jigubangbang.com_service.repository.CommonMapper;
@@ -82,6 +83,9 @@ public class TravelmateService {
             String endDate) {
 
         try {
+            // 상태 업데이트
+            updateExpiredTravelmates();
+
             // 여행메이트 목록 조회
             List<Map<String, Object>> travelmateMapList = travelmateMapper.findTravelmateList(
                     offset, pageSize, locations, targets, themes, styles, continents, sortOption, showCompleted, search, startDate, endDate
@@ -199,6 +203,9 @@ public class TravelmateService {
 
     public TravelmateDetailResponse getTravelmateDetail(Long postId) {
         try {
+            // 해당 게시글 상태 확인 및 업데이트
+            updateTravelmateStatusIfExpired(postId);
+
             Map<String, Object> detailMap = travelmateMapper.findTravelmateDetail(postId);
             
             if (detailMap == null) {
@@ -863,6 +870,37 @@ public class TravelmateService {
         } catch (Exception e) {
             System.err.println("신청 삭제 중 오류 발생: " + e.getMessage());
             throw new RuntimeException("신청 삭제에 실패했습니다.", e);
+        }
+    }
+
+    public TravelmateStatusDto getTravelmateStatus(Long postId) {
+        // 상태 업데이트 후 조회
+        updateTravelmateStatusIfExpired(postId);
+
+        TravelmateStatusDto status = travelmateMapper.getTravelmateStatus(postId);
+        
+        if (status == null) {
+            throw new RuntimeException("Travelmate post not found with id: " + postId);
+        }
+        
+        return status;
+    }
+
+    private void updateExpiredTravelmates() {
+        try {
+            travelmateMapper.updateExpiredTravelmates();
+        } catch (Exception e) {
+            System.err.println("만료된 여행모임 상태 업데이트 중 오류: " + e.getMessage());
+            // 로그만 남기고 메인 로직은 계속 진행
+        }
+    }
+
+    // 특정 여행모임 상태 확인 및 업데이트
+    private void updateTravelmateStatusIfExpired(Long postId) {
+        try {
+            travelmateMapper.updateTravelmateStatusIfExpired(postId);
+        } catch (Exception e) {
+            System.err.println("여행모임 상태 업데이트 중 오류 (ID: " + postId + "): " + e.getMessage());
         }
     }
 }

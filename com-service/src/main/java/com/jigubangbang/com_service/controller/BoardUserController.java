@@ -235,7 +235,7 @@ public class BoardUserController {
     }
 
     // 댓글 삭제
-    @DeleteMapping("/board/{postId}/comments/{commentId}")
+    @DeleteMapping("/{postId}/comments/{commentId}")
     public ResponseEntity<Map<String, Object>> deleteBoardComment(
             @PathVariable Integer postId,
             @PathVariable Integer commentId,

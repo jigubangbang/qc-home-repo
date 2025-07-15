@@ -813,4 +813,27 @@
         DELETE FROM travelmate_application 
         WHERE id = #{applicationId}
     </delete>
+
+    <select id="getTravelmateStatus" parameterType="long" resultType="com.jigubangbang.com_service.model.TravelmateStatusDto">
+        SELECT 
+            id,
+            blind_status AS blindStatus
+        FROM travelmate_post 
+        WHERE id = #{postId}
+    </select>
+
+    <update id="updateExpiredTravelmates">
+        UPDATE travelmate_post 
+        SET status = 'END', updated_at = NOW()
+        WHERE status = 'ACTIVE' 
+        AND end_at &lt; NOW()
+    </update>
+
+    <update id="updateTravelmateStatusIfExpired">
+        UPDATE travelmate_post 
+        SET status = 'END', updated_at = NOW()
+        WHERE id = #{postId}
+        AND status = 'ACTIVE' 
+        AND end_at &lt; NOW()
+    </update>
 </mapper>

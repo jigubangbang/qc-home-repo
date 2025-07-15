@@ -31,6 +31,7 @@ import com.jigubangbang.com_service.model.TravelmateCreateRequest;
 import com.jigubangbang.com_service.model.TravelmateDetailResponse;
 import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
+import com.jigubangbang.com_service.model.TravelmateStatusDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateRequest;
 import com.jigubangbang.com_service.model.chat_service.GroupAcceptedNotificationRequestDto;
 import com.jigubangbang.com_service.model.chat_service.GroupApplyNotificationRequestDto;
@@ -215,6 +216,12 @@ public class TravelmateMainController {
             e.printStackTrace();
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    @GetMapping("/com/travelmate/{postId}/status")
+    public ResponseEntity<TravelmateStatusDto> getTravelmateStatus(@PathVariable Long postId) {
+        TravelmateStatusDto status = travelmateService.getTravelmateStatus(postId);
+        return ResponseEntity.ok(status);
     }
 
     @GetMapping("/user-com/travelmate/{postId}/member-status")

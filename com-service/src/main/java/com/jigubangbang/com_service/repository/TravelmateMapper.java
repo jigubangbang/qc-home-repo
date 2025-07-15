@@ -19,6 +19,7 @@ import com.jigubangbang.com_service.model.TravelmateListResponse;
 import com.jigubangbang.com_service.model.TravelmateMemberDto;
 import com.jigubangbang.com_service.model.TravelmatePostDto;
 import com.jigubangbang.com_service.model.TravelmateResponseDto;
+import com.jigubangbang.com_service.model.TravelmateStatusDto;
 import com.jigubangbang.com_service.model.TravelmateUpdateDto;
 
 @Mapper
@@ -145,4 +146,11 @@ public interface TravelmateMapper {
 
     //댓글
     String findPostTitle(Long postId);
+
+    //상태
+    TravelmateStatusDto getTravelmateStatus(@Param("postId") Long postId);
+
+    //업데이트
+    void updateExpiredTravelmates();
+    void updateTravelmateStatusIfExpired(@Param("postId") Long postId);
 }
