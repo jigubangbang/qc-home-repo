@@ -14,6 +14,7 @@ import com.jigubangbang.quest_service.model.QuestParticipantDto;
 import com.jigubangbang.quest_service.model.QuestPublicModalDto;
 import com.jigubangbang.quest_service.model.QuestSimpleParticipantDto;
 import com.jigubangbang.quest_service.model.SimpleUserDto;
+import com.jigubangbang.quest_service.model.UserLevelInfoDto;
 
 @Mapper
 public interface QuestMapper {
@@ -46,4 +47,5 @@ public interface QuestMapper {
     public List<SimpleUserDto> getUserGraph();
     public int getUserRank(String user_id);
     public int getCountUser();
+    UserLevelInfoDto getUserBasicInfo(String userId);
 }

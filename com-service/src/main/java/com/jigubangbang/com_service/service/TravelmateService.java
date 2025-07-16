@@ -798,6 +798,9 @@ public class TravelmateService {
             
             // 3-9. 여행 지역 삭제
             travelmateMapper.deleteTravelmateRegions(travelmateId);
+
+            // application 테이블 삭제
+            travelmateMapper.deleteTravelmateApplications(travelmateId);
             
             // 3-10. 여행자모임 메인 테이블 삭제
             int deletedTravelmate = travelmateMapper.deleteTravelmateById(travelmateId);

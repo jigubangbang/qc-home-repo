@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.jigubangbang.quest_service.model.QuestCerti;
 import com.jigubangbang.quest_service.model.SimpleUserDto;
+import com.jigubangbang.quest_service.model.UserLevelInfoDto;
 import com.jigubangbang.quest_service.service.QuestService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class MyPageController {
     @Autowired
     private QuestService questService;
+
+    @GetMapping("/user-level/{userId}")
+    public ResponseEntity<UserLevelInfoDto> getUserLevelInfo(@PathVariable String userId) {
+        try {
+            UserLevelInfoDto levelInfo = questService.getUserLevelInfo(userId);
+            if (levelInfo == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(levelInfo);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 
     @GetMapping("/my-page")
     public ResponseEntity<Map<String, Object>> getUserPage(

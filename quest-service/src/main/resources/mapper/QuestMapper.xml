@@ -427,4 +427,13 @@
         SELECT COUNT(*)
         from user
     </select>
+
+    <select id="getUserBasicInfo" parameterType="string" resultType="com.jigubangbang.quest_service.model.UserLevelInfoDto">
+        SELECT 
+            user_id as userId,
+            xp as currentXp,
+            level as currentLevel
+        FROM user 
+        WHERE user_id = #{userId}
+    </select>
 </mapper>
