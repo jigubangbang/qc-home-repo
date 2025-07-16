@@ -142,7 +142,7 @@ public class TravelinfoMainController {
         }
     }
 
-    @PostMapping("/user-com/travelinfo/")
+    @PostMapping("/user-com/travelinfo")
     public ResponseEntity<Map<String, Object>> createTravelInfo(
             @RequestBody TravelInfoRequestDto requestDTO,
             @RequestHeader("User-Id") String userId) {
