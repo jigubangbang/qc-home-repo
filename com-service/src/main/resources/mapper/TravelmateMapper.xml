@@ -63,6 +63,7 @@
             tp.end_at AS endAt,
             tp.view_count AS viewCount,
             tp.status,
+            tp.is_public AS isPublic,
             
             COALESCE(like_counts.like_count, 0) AS likeCount,
             COALESCE(member_counts.member_count, 0) AS memberCount,
@@ -360,6 +361,7 @@
             tp.view_count AS viewCount,
             tp.status,
             tp.blind_status AS blindStatus,
+            tp.is_public AS isPublic,
             
             COALESCE(like_counts.like_count, 0) AS likeCount,
             COALESCE(member_counts.member_count, 0) AS memberCount,

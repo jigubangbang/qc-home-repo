@@ -93,6 +93,7 @@
             COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
             tp.start_at AS startAt,
             tp.end_at AS endAt,
+            tp.blind_status AS blindStatus,
             (
                 SELECT GROUP_CONCAT(
                     CONCAT(
@@ -129,7 +130,6 @@
         LEFT JOIN travel_style ts_creator ON u.travel_style_id = ts_creator.id
         WHERE tp.creator_id = #{currentUserId}
         AND tp.status != 'DELETED'
-        AND tp.blind_status = 'VISIBLE'
         ORDER BY tp.created_at DESC
     </select>
 
@@ -160,6 +160,7 @@
             u.nickname AS creatorNickname,
             COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
             tp.start_at AS startAt,
+            tp.blind_status AS blindStatus,
             tp.end_at AS endAt,
             (
                 SELECT GROUP_CONCAT(
@@ -200,7 +201,6 @@
         WHERE gu.user_id = #{currentUserId}
         AND tp.creator_id != #{currentUserId}
         AND tp.status = 'ACTIVE'
-        AND tp.blind_status = 'VISIBLE'
         ORDER BY gu.joined_at DESC
     </select>
 
@@ -214,6 +214,7 @@
             u.nickname AS creatorNickname,
             COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
             tp.start_at AS startAt,
+            tp.blind_status AS blindStatus,
             tp.end_at AS endAt,
             (
                 SELECT GROUP_CONCAT(
@@ -256,7 +257,6 @@
         WHERE ta.user_id = #{currentUserId}
         AND ta.status = 'PENDING'
         AND tp.status = 'ACTIVE'
-        AND tp.blind_status = 'VISIBLE'
         ORDER BY ta.applied_at DESC
     </select>
 
@@ -271,6 +271,7 @@
             COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
             tp.start_at AS startAt,
             tp.end_at AS endAt,
+            tp.blind_status AS blindStatus,
             (
                 SELECT GROUP_CONCAT(
                     CONCAT(
@@ -309,7 +310,6 @@
         JOIN travelmate_like tl ON tl.mate_id = tp.id
         WHERE tl.user_id = #{currentUserId}
         AND tp.status != 'DELETED'
-        AND tp.blind_status = 'VISIBLE'
         ORDER BY tl.created_at DESC
     </select>
 
@@ -324,6 +324,7 @@
             COALESCE(ts_creator.label, '스타일미정') AS creatorStyle,
             tp.start_at AS startAt,
             tp.end_at AS endAt,
+            tp.blind_status AS blindStatus,
             (
                 SELECT GROUP_CONCAT(
                     CONCAT(
@@ -362,7 +363,6 @@
         JOIN group_user gu ON gu.group_type = 'TRAVELMATE' AND gu.group_id = tp.id
         WHERE gu.user_id = #{currentUserId}
         AND tp.status = 'END'
-        AND tp.blind_status = 'VISIBLE'
         ORDER BY tp.end_at DESC
     </select>
 
@@ -400,7 +400,6 @@
         JOIN group_user gu ON gu.group_type = 'TRAVELINFO' AND gu.group_id = ti.id
         WHERE gu.user_id = #{currentUserId}
         AND ti.creator_id != #{currentUserId}
-        AND ti.blind_status = 'VISIBLE'
         AND ti.deleted_at IS NULL
         ORDER BY gu.joined_at DESC
     </select>
@@ -474,7 +473,6 @@
         FROM travel_info ti
         JOIN user u ON ti.creator_id = u.user_id
         WHERE ti.creator_id = #{currentUserId}
-        AND ti.blind_status = 'VISIBLE'
         AND ti.deleted_at IS NULL
         ORDER BY ti.created_at DESC
     </select>

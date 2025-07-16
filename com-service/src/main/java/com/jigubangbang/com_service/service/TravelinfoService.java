@@ -151,7 +151,7 @@ public class TravelinfoService {
             travelinfoMapper.insertTravelInfoThemes(travelInfoId, requestDTO.getThemeIds());
         }
         //자기 자신을 참여자로 등록
-        joinTravelInfo(travelInfoId, requestDTO.getCreatorId());
+        joinTravelInfo(travelInfoId, requestDTO.getCreatorId(), true);
 
         //채팅방 만들기
         commonMapper.insertChatRoom("TRAVELINFO", travelInfoId);
@@ -301,7 +301,7 @@ public class TravelinfoService {
     }
 
     // 여행정보 참여
-    public void joinTravelInfo(Long travelInfoId, String userId) {
+    public void joinTravelInfo(Long travelInfoId, String userId, boolean isCreator) {
         try {
             // 여행정보 존재 여부 확인
             if (!travelinfoMapper.existsTravelInfo(travelInfoId)) {
@@ -314,7 +314,7 @@ public class TravelinfoService {
             }
 
             // 참여 추가
-            travelinfoMapper.insertTravelInfoMember(travelInfoId, userId);
+            travelinfoMapper.insertTravelInfoMember(travelInfoId, userId, isCreator);
 
         } catch (IllegalArgumentException e) {
             System.err.println("여행정보 참여 실패: " + e.getMessage());

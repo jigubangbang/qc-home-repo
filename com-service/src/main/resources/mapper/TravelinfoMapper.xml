@@ -191,12 +191,14 @@
         group_type,
         group_id,
         user_id,
-        joined_at
+        joined_at,
+        is_creator
     ) VALUES (
         'TRAVELINFO',
         #{travelInfoId},
         #{userId},
-        NOW()
+        NOW(),
+        #{isCreator}
     )
 </insert>
 

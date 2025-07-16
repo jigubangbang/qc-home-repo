@@ -108,7 +108,8 @@ public class TravelinfoMainController {
             @RequestHeader("User-Id") String userId) {
         
         try {
-            travelinfoService.joinTravelInfo(travelInfoId, userId);
+            //isCreator false값 주기
+            travelinfoService.joinTravelInfo(travelInfoId, userId, false);
             return ResponseEntity.ok(Map.of("success", true, "message", "여행정보 참여가 완료되었습니다."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

@@ -24,6 +24,7 @@ public class TravelmateDto {
     private int likeCount;
     private int memberCount;
     private int viewCount;
+    private boolean isPublic;
     private String status;
     private String blindStatus;
 }

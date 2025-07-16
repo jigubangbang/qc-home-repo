@@ -182,6 +182,7 @@ public class TravelmateService {
             dto.setCreatorNickname(getStringValue(map, "creatorNickname"));
             dto.setCreatorStyle(getStringValue(map, "creatorStyle"));
             dto.setStartAt(getLocalDateTimeValue(map, "startAt"));
+            dto.setPublic(getBooleanValue(map, "isPublic"));
             dto.setEndAt(getLocalDateTimeValue(map, "endAt"));
             dto.setLocationNames(getStringValue(map, "locationNames"));
             dto.setThemeNames(getStringValue(map, "themeNames"));
@@ -199,6 +200,20 @@ public class TravelmateService {
         }
         
         return dto;
+    }
+
+    private Boolean getBooleanValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) return false;
+        
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        } else if (value instanceof Integer) {
+            return ((Integer) value) != 0;
+        } else if (value instanceof String) {
+            return "true".equalsIgnoreCase((String) value) || "1".equals(value);
+        }
+        return false;
     }
 
     public TravelmateDetailResponse getTravelmateDetail(Long postId) {

@@ -30,7 +30,7 @@ public interface TravelinfoMapper {
     boolean existsTravelInfo(@Param("travelInfoId") Long travelInfoId);
 
     //참여
-    void insertTravelInfoMember(@Param("travelInfoId") Long travelInfoId, @Param("userId") String userId);
+    void insertTravelInfoMember(@Param("travelInfoId") Long travelInfoId, @Param("userId") String userId, @Param("isCreator") boolean isCreator);
     boolean existsTravelInfoMember(@Param("travelInfoId") Long travelInfoId, @Param("userId") String userId);
     List<Long> findJoinedTravelInfoIdsByUserId(@Param("userId") String userId);
 
