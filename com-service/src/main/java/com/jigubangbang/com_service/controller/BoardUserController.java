@@ -173,11 +173,13 @@ public class BoardUserController {
                 String postAuthorId = (String) serviceResult.get("postAuthorId");
                 String postTitle = (String) serviceResult.get("postTitle");
                 String commenterId = (String) serviceResult.get("commenterId");
+                String nickname = (String) serviceResult.get("nickname");
                 
                 System.out.println("알림 데이터 - 받는이: " + postAuthorId + ", 게시글: " + postTitle);
 
                 ComNotificationRequestDto notificationRequest = ComNotificationRequestDto.builder()
                     .authorId(postAuthorId)  // 게시글 작성자에게 알림
+                    .nickname(nickname)
                     .postId(postId)
                     .relatedUrl("/board/" + postId)
                     .senderId(commenterId)

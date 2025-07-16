@@ -390,12 +390,15 @@ public class BoardService {
         // 댓글 생성 (level 0, parentId null)
         boardMapper.insertBoardComment(userId, postId, content.trim(), 0, null);
 
+        String nickname = boardMapper.getNicknameById(userId);
+
         // 알림 정보 반환
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("needNotification", !userId.equals(postAuthorId)); // 본인 댓글은 알림 X
         result.put("postAuthorId", postAuthorId);
         result.put("commenterId", userId);
+        result.put("nickname", nickname);
         
         return result;
     }
@@ -423,6 +426,9 @@ public class BoardService {
         }
 
         String parentCommentAuthorId = boardMapper.getBoardCommentAuthor(parentId);
+
+        String nickname = boardMapper.getNicknameById(userId);
+
         
         // 답변 생성 (level 1, parentId 설정)
         boardMapper.insertBoardComment(userId, postId, content.trim(), 1, parentId);
@@ -432,7 +438,7 @@ public class BoardService {
         result.put("needNotification", !userId.equals(parentCommentAuthorId)); 
         result.put("parentCommentAuthorId", parentCommentAuthorId);
         result.put("replierId", userId);
-        
+        result.put("nickname", nickname);
         return result;
     }
 

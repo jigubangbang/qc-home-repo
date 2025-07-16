@@ -146,6 +146,7 @@ public interface TravelmateMapper {
 
     //댓글
     String findPostTitle(Long postId);
+    String findNicknameById(String userId);
 
     //상태
     TravelmateStatusDto getTravelmateStatus(@Param("postId") Long postId);

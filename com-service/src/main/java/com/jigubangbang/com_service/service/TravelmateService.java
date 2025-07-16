@@ -342,6 +342,7 @@ public class TravelmateService {
 
             // 게시글 제목 조회 (알림용)
             String groupName = travelmateMapper.findPostTitle(postId);
+            String applicantNickname = travelmateMapper.findNicknameById(userId);
 
             // 참여 신청 추가
             travelmateMapper.insertMemberApplication(postId, userId, description);
@@ -354,6 +355,7 @@ public class TravelmateService {
             result.put("groupName", groupName);
             result.put("postId", postId);
             result.put("applicantId", userId);
+            result.put("applicantNickname", applicantNickname);
             
             return result;
             

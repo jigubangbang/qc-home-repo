@@ -95,4 +95,5 @@ public interface BoardMapper {
     String getBoardPostAuthor(Integer postId);
     String getBoardPostTitle(Integer postId);
     String getBoardCommentAuthor(Integer commentId);
+    String getNicknameById(String userId);
 }

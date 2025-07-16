@@ -575,4 +575,8 @@
         DELETE FROM board_post
         WHERE id = #{postId}
     </delete>
+
+    <select id="getNicknameById" parameterType="String" resultType="String">
+        SELECT nickname from user where user_id=#{userId}
+    </select>
 </mapper>

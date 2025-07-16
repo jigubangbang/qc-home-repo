@@ -18,5 +18,5 @@ public class GroupApplyNotificationRequestDto {
     private int groupId;       
     private String relatedUrl;
     private String applicantId;
-
+    private String nickname;
 }

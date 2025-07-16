@@ -247,23 +247,22 @@ public class TravelmateMainController {
         String description = request.get("description");
         
         try {
-        System.out.println("=== 여행 모임 참여 신청 시작 ===");
         Map<String, Object> serviceResult = travelmateService.joinTravelmate(postId, userId, description);
         
         // 알림 처리
         if (serviceResult.get("needNotification") != null && (Boolean) serviceResult.get("needNotification")) {
-            System.out.println("여행 모임 참여 신청 알림 처리 시작");
-            
+
                 try {
                     String creatorId = (String) serviceResult.get("creatorId");
                     String groupName = (String) serviceResult.get("groupName");
                     Long actualPostId = (Long) serviceResult.get("postId");
                     String applicantId = (String) serviceResult.get("applicantId");
+                    String applicantNickname = (String) serviceResult.get("applicantNickname");
                     
-                    System.out.println("알림 데이터 - 받는이: " + creatorId + ", 모임명: " + groupName + ", 신청자: " + applicantId);
                     
                     GroupApplyNotificationRequestDto notificationRequest = GroupApplyNotificationRequestDto.builder()
                         .creatorId(creatorId)           // 모임 작성자에게 알림
+                        .nickname(applicantNickname)
                         .groupName(groupName)
                         .groupId(actualPostId.intValue()) // 이거 필요 없는 거 같은뎁쇼
                         .relatedUrl("/traveler/my/travelmate")

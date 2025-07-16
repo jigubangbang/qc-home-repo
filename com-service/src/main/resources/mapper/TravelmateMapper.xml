@@ -838,4 +838,8 @@
         AND status = 'ACTIVE' 
         AND end_at &lt; NOW()
     </update>
+
+    <select id="findNicknameById" parameterType="String" resultType="String">
+        SELECT nickname from user where user_id=#{userId}
+    </select>
 </mapper>
