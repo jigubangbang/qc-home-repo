@@ -37,8 +37,9 @@ public class AdminBadgeController {
     private S3Service s3Service;
     
     @GetMapping("/badges")
-    public ResponseEntity<Map<String, Object>> getAdminBadgeList(){
-        Map<String, Object> result = badgeService.getAdminBadgeList();
+    public ResponseEntity<Map<String, Object>> getAdminBadgeList(
+            @RequestParam(value = "search", required = false) String search) {
+        Map<String, Object> result = badgeService.getAdminBadgeList(search);
         return ResponseEntity.ok(result);
     }
 
