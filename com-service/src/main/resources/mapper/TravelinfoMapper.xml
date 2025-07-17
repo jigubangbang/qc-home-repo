@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.com_service.repository.TravelinfoMapper">
+    
+    <select id="findTravelInfoList" resultType="java.util.Map">
+        SELECT 
+            ti.id,
+            ti.title,
+            ti.simple_description AS simpleDescription,
+            ti.creator_id AS creatorId,
+            u.nickname AS creatorNickname,
+            ti.enter_description AS enterDescription,
+            ti.thumbnail_image AS thumbnailImage,
+            ti.created_at AS createdAt,
+            ti.blind_status AS blindStatus,
+            
+            <!-- 테마 ID 목록 -->
+            GROUP_CONCAT(DISTINCT tit.theme_id ORDER BY tit.theme_id) AS themeIds,
+            
+            <!-- 좋아요 수 -->
+            COALESCE(like_counts.like_count, 0) AS likeCount,
+            
+            <!-- 멤버 수 -->
+            COALESCE(member_counts.member_count, 0) AS memberCount,
+            
+            <!-- 최근 메시지 -->
+            latest_msg.latest_message AS latestMessage,
+            
+            <!-- 7일 이내 채팅 수 -->
+            COALESCE(chat_counts.chat_count, 0) AS chatCount
+            
+        FROM travel_info ti
+        
+        <!-- 테마 조인 -->
+        LEFT JOIN travel_info_theme tit ON ti.id = tit.travel_info_id
+        
+        <!-- 좋아요 수 계산 -->
+        LEFT JOIN (
+            SELECT travel_info_id, COUNT(*) AS like_count
+            FROM travel_info_like
+            GROUP BY travel_info_id
+        ) like_counts ON ti.id = like_counts.travel_info_id
+        
+        <!-- 멤버 수 계산 -->
+        LEFT JOIN (
+            SELECT group_id AS travel_info_id, COUNT(*) AS member_count
+            FROM group_user
+            WHERE group_type = 'TRAVELINFO'
+            GROUP BY group_id
+        ) member_counts ON ti.id = member_counts.travel_info_id
+        
+        <!-- 최근 메시지 조회 -->
+        LEFT JOIN (
+            SELECT 
+                cr.group_id AS travel_info_id,
+                cm.message AS latest_message
+            FROM chat_room cr
+            LEFT JOIN (
+                SELECT 
+                    chat_id,
+                    message,
+                    ROW_NUMBER() OVER (PARTITION BY chat_id ORDER BY created_at DESC) as rn
+                FROM chat_message
+            ) cm ON cr.id = cm.chat_id AND cm.rn = 1
+            WHERE cr.group_type = 'TRAVELINFO'
+        ) latest_msg ON ti.id = latest_msg.travel_info_id
+        
+        <!-- 7일 이내 채팅 수 계산 -->
+        LEFT JOIN (
+            SELECT 
+                cr.group_id AS travel_info_id,
+                COUNT(cm.id) AS chat_count
+            FROM chat_room cr
+            LEFT JOIN chat_message cm ON cr.id = cm.chat_id
+            WHERE cr.group_type = 'TRAVELINFO'
+            AND cm.created_at &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            GROUP BY cr.group_id
+        ) chat_counts ON ti.id = chat_counts.travel_info_id
+
+        LEFT JOIN user u ON u.user_id=ti.creator_id
+        
+        WHERE 1=1
+        
+        <!-- 테마 필터 -->
+        <if test="themes != null and themes.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travel_info_theme tit2
+                WHERE tit2.travel_info_id = ti.id
+                AND tit2.theme_id IN
+                <foreach collection="themes" item="theme" open="(" close=")" separator=",">
+                    #{theme}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 검색 필터 -->
+        <if test="search != null and search != ''">
+            AND (ti.title LIKE CONCAT('%', #{search}, '%')
+                 OR ti.simple_description LIKE CONCAT('%', #{search}, '%'))
+        </if>
+        
+        GROUP BY ti.id, ti.title, ti.simple_description, ti.creator_id, 
+                 ti.enter_description, ti.thumbnail_image, ti.created_at, ti.blind_status,
+                 like_counts.like_count, member_counts.member_count, 
+                 latest_msg.latest_message, chat_counts.chat_count
+        
+        <!-- 정렬 -->
+        <choose>
+            <when test="sortOption == 'chat'">
+                ORDER BY chat_counts.chat_count DESC, ti.created_at DESC
+            </when>
+            <when test="sortOption == 'likes'">
+                ORDER BY like_counts.like_count DESC, ti.created_at DESC
+            </when>
+            <when test="sortOption == 'latest'">
+                ORDER BY ti.created_at DESC
+            </when>
+            <otherwise>
+                ORDER BY ti.id ASC
+            </otherwise>
+        </choose>
+        
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 총 개수 조회 -->
+    <select id="countTravelInfoList" resultType="long">
+        SELECT COUNT(DISTINCT ti.id)
+        FROM travel_info ti
+        
+        WHERE 1=1
+        
+        <!-- 테마 필터 -->
+        <if test="themes != null and themes.size() > 0">
+            AND EXISTS (
+                SELECT 1 FROM travel_info_theme tit
+                WHERE tit.travel_info_id = ti.id
+                AND tit.theme_id IN
+                <foreach collection="themes" item="theme" open="(" close=")" separator=",">
+                    #{theme}
+                </foreach>
+            )
+        </if>
+        
+        <!-- 검색 필터 -->
+        <if test="search != null and search != ''">
+            AND (ti.title LIKE CONCAT('%', #{search}, '%')
+                 OR ti.simple_description LIKE CONCAT('%', #{search}, '%'))
+        </if>
+    </select>
+
+    <!-- 사용자가 좋아요한 여행정보 ID 목록 조회 -->
+    <select id="findLikedTravelInfoIdsByUserId" parameterType="string" resultType="long">
+        SELECT travel_info_id
+        FROM travel_info_like
+        WHERE user_id = #{userId}
+    </select>
+
+    <!-- 좋아요 추가 -->
+    <insert id="insertLike">
+        INSERT INTO travel_info_like (travel_info_id, user_id, created_at)
+        VALUES (#{travelInfoId}, #{userId}, NOW())
+    </insert>
+
+    <!-- 좋아요 제거 -->
+    <delete id="deleteLike">
+        DELETE FROM travel_info_like
+        WHERE travel_info_id = #{travelInfoId} AND user_id = #{userId}
+    </delete>
+
+    <!-- 좋아요 존재 여부 확인 -->
+    <select id="existsLike" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM travel_info_like
+        WHERE travel_info_id = #{travelInfoId} AND user_id = #{userId}
+    </select>
+
+    <!-- 여행정보 존재 여부 확인 -->
+    <select id="existsTravelInfo" parameterType="long" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM travel_info
+        WHERE id = #{travelInfoId}
+    </select>
+
+    <!-- 여행정보 참여 멤버 등록 -->
+<insert id="insertTravelInfoMember">
+    INSERT INTO group_user (
+        group_type,
+        group_id,
+        user_id,
+        joined_at,
+        is_creator
+    ) VALUES (
+        'TRAVELINFO',
+        #{travelInfoId},
+        #{userId},
+        NOW(),
+        #{isCreator}
+    )
+</insert>
+
+    <!-- 여행정보 참여 여부 확인 -->
+    <select id="existsTravelInfoMember" resultType="boolean">
+        SELECT COUNT(*) &gt; 0
+        FROM group_user
+        WHERE group_type = 'TRAVELINFO'
+        AND group_id = #{travelInfoId}
+        AND user_id = #{userId}
+    </select>
+
+    <!-- 사용자가 참여한 여행정보 ID 목록 조회 -->
+    <select id="findJoinedTravelInfoIdsByUserId" parameterType="string" resultType="long">
+        SELECT group_id
+        FROM group_user
+        WHERE group_type = 'TRAVELINFO'
+        AND user_id = #{userId}
+    </select>
+
+    <select id="selectTravelInfoById" parameterType="long" resultType="com.jigubangbang.com_service.model.TravelInfoResponseDto">
+        SELECT 
+            id,
+            title,
+            simple_description AS simpleDescription,
+            enter_description AS enterDescription,
+            thumbnail_image AS thumbnailImage,
+            creator_id AS creatorId,
+            blind_status AS blindStatus,
+            created_at AS createdAt
+        FROM travel_info
+        WHERE id = #{id}    </select>
+
+    <!-- 정보방 생성 -->
+    <insert id="insertTravelInfo" parameterType="com.jigubangbang.com_service.model.TravelInfoRequestDto" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO travel_info (
+            title,
+            simple_description,
+            enter_description,
+            thumbnail_image,
+            creator_id,
+            created_at
+        ) VALUES (
+            #{title},
+            #{simpleDescription},
+            #{enterDescription},
+            #{thumbnailImage},
+            #{creatorId},
+            NOW()
+        )
+    </insert>
+
+    <!-- 정보방 수정 -->
+    <update id="updateTravelInfo" parameterType="com.jigubangbang.com_service.model.TravelInfoRequestDto">
+        UPDATE travel_info SET
+            title = #{title},
+            simple_description = #{simpleDescription},
+            enter_description = #{enterDescription},
+            thumbnail_image = #{thumbnailImage}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 정보방 테마 관계 조회 -->
+    <select id="selectThemeIdsByTravelInfoId" parameterType="long" resultType="integer">
+        SELECT theme_id
+        FROM travel_info_theme
+        WHERE travel_info_id = #{travelInfoId}
+    </select>
+
+    <!-- 테마 이름 조회 -->
+    <select id="selectThemeNamesByIds" parameterType="list" resultType="string">
+        SELECT GROUP_CONCAT(label SEPARATOR ', ')
+        FROM info_theme
+        WHERE id IN
+        <foreach collection="themeIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 정보방 테마 관계 등록 -->
+    <insert id="insertTravelInfoThemes">
+        INSERT INTO travel_info_theme (travel_info_id, theme_id)
+        VALUES
+        <foreach collection="themeIds" item="themeId" separator=",">
+            (#{travelInfoId}, #{themeId})
+        </foreach>
+    </insert>
+
+    <!-- 정보방 테마 관계 삭제 -->
+    <delete id="deleteTravelInfoThemes" parameterType="long">
+        DELETE FROM travel_info_theme
+        WHERE travel_info_id = #{travelInfoId}
+    </delete>
+
+    <!-- 여행정보 삭제를 위한 조회 (작성자 확인용) -->
+    <select id="selectTravelInfoForDelete" parameterType="long" resultType="com.jigubangbang.com_service.model.TravelInfoResponseDto">
+        SELECT 
+            id,
+            title,
+            simple_description AS simpleDescription,
+            enter_description AS enterDescription,
+            thumbnail_image AS thumbnailImage,
+            creator_id AS creatorId,
+            blind_status AS blindStatus,
+            created_at AS createdAt
+        FROM travel_info 
+        WHERE id = #{travelinfoId}
+          AND deleted_at IS NULL
+    </select>
+
+    <delete id="deleteTravelInfoById" parameterType="long">
+        DELETE FROM travel_info 
+        WHERE id = #{travelinfoId}
+    </delete>
+
+    <!-- 채팅 메시지 삭제 -->
+    <delete id="deleteChatMessagesByTravelInfoId" parameterType="long">
+        DELETE cm FROM chat_message cm
+        INNER JOIN chat_room cr ON cm.chat_id = cr.id
+        WHERE cr.group_type = 'TRAVELINFO' 
+          AND cr.group_id = #{travelinfoId}
+    </delete>
+
+    <!-- 채팅 참여자 삭제 -->
+    <delete id="deleteChatParticipantsByTravelInfoId" parameterType="long">
+        DELETE gu FROM group_user gu
+        INNER JOIN travel_info ti ON ti.id = gu.group_id
+        WHERE gu.group_type = 'TRAVELINFO' 
+          AND gu.group_id = #{travelinfoId}
+    </delete>
+
+    <!-- 채팅방 삭제 -->
+    <delete id="deleteChatRoomByTravelInfoId" parameterType="long">
+        DELETE FROM chat_room 
+        WHERE group_type = 'TRAVELINFO' 
+          AND group_id = #{travelinfoId}
+    </delete>
+
+    <!-- 좋아요 정보 삭제 -->
+    <delete id="deleteLikesByTravelInfoId" parameterType="long">
+        DELETE FROM travel_info_like 
+        WHERE travel_info_id = #{travelinfoId}
+    </delete>
+
+</mapper>

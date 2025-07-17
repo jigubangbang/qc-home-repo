@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.jigubangbang.quest_service.repository.UserQuestMapper">
+
+    <select id="getQuestModalById" parameterType="map" resultType="com.jigubangbang.quest_service.model.QuestModalDto">
+        SELECT 
+            q.id,
+            q.type,
+            q.category,
+            q.title,
+            q.description,
+            q.difficulty,
+            q.xp,
+            q.is_seasonal,
+            q.season_start,
+            q.season_end,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS status,
+            
+            u.user_id,
+            u.nickname,
+            
+            qu.status as quest_status,
+            qu.id as quest_user_id,
+            qu.started_at,
+            qu.completed_at,
+            qu.given_up_at,
+            
+            (SELECT COUNT(*) FROM quest_user qu_prog WHERE qu_prog.quest_id = q.id AND qu_prog.status = 'IN_PROGRESS') as count_in_progress,
+            (SELECT COUNT(*) FROM quest_user qu_comp WHERE qu_comp.quest_id = q.id AND qu_comp.status = 'COMPLETED') as count_completed
+            
+        FROM quest q
+        LEFT JOIN user u ON u.user_id = #{current_user_id} 
+        LEFT JOIN quest_user qu ON q.id = qu.quest_id AND qu.user_id = #{current_user_id} 
+        WHERE q.id = #{quest_id}
+    </select>
+
+    <select id="getBadgesByQuestId" parameterType="int" resultType="com.jigubangbang.quest_service.model.BadgeDto">
+        SELECT 
+            b.id,
+            b.kor_title,
+            b.eng_title,
+            b.description,
+            b.icon,
+            b.created_at,
+            b.difficulty,
+            (SELECT COUNT(*) FROM badge_user bu WHERE bu.badge_id = b.id) as acquired_count
+        FROM badge_quest bq
+        JOIN badge b ON bq.badge_id = b.id
+        WHERE bq.quest_id = #{quest_id}
+        ORDER BY b.id
+    </select>
+
+    <select id="getInProgressUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image
+        FROM quest_user qu
+        JOIN user u ON qu.user_id = u.user_id
+        WHERE qu.quest_id = #{quest_id} 
+        AND qu.status = 'IN_PROGRESS'
+        ORDER BY qu.started_at DESC
+    </select>
+
+    <select id="getCompletedUsers" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestSimpleParticipantDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image
+        FROM quest_user qu
+        JOIN user u ON qu.user_id = u.user_id
+        WHERE qu.quest_id = #{quest_id} 
+        AND qu.status = 'COMPLETED'
+        ORDER BY qu.completed_at DESC
+    </select>
+    
+    <insert id="insertQuestUser" parameterType="com.jigubangbang.quest_service.model.QuestUserDto">
+        INSERT INTO quest_user (user_id, quest_id, status, started_at)
+        VALUES (#{user_id}, #{quest_id}, #{status}, #{started_at})
+    </insert>
+
+    <select id="countUserQuest" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM quest_user
+        WHERE user_id = #{user_id} AND quest_id = #{quest_id} AND status != 'GIVEN_UP'
+    </select>
+
+    <update id="reChallengeQuestUser" parameterType="map">
+        UPDATE quest_user
+        SET status="IN_PROGRESS"
+        WHERE user_id=#{user_id} AND quest_id=#{quest_id}
+    </update>
+    
+    <select id="getUserJourney" parameterType="String" resultType="com.jigubangbang.quest_service.model.UserJourneyDto">
+        SELECT 
+            u.user_id,
+            u.nickname,
+            u.profile_image,
+            u.xp,
+            u.level,
+            COALESCE(SUM(CASE WHEN qu.status = 'COMPLETED' THEN 1 ELSE 0 END), 0) as completed_quest_count,
+            COALESCE(SUM(CASE WHEN qu.status = 'IN_PROGRESS' THEN 1 ELSE 0 END), 0) as in_progress_quest_count
+        FROM user u
+        LEFT JOIN quest_user qu ON u.user_id = qu.user_id 
+            AND qu.status IN ('COMPLETED', 'IN_PROGRESS')
+        WHERE u.user_id = #{user_id}
+        GROUP BY u.user_id, u.nickname, u.profile_image, u.level
+    </select>
+
+    <select id="getUserQuestList" parameterType="map" resultType="com.jigubangbang.quest_service.model.QuestUserDto">
+        SELECT
+            qu.id AS id,
+            qu.user_id AS user_id,
+            qu.quest_id AS quest_id,
+            qu.status AS status,
+            qu.started_at AS started_at,
+            qu.completed_at AS completed_at,
+            qu.given_up_at AS given_up_at,
+            q.title AS title,
+            q.difficulty AS difficulty,
+            q.xp AS xp,
+            q.description AS description,
+            (SELECT b.icon 
+            FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id 
+            LIMIT 1) AS icon,
+            (SELECT b.kor_title 
+            FROM badge_quest bq 
+            JOIN badge b ON bq.badge_id = b.id 
+            WHERE bq.quest_id = q.id 
+            LIMIT 1) AS badge,
+            (SELECT COALESCE(
+                ROUND(
+                    (SELECT COUNT(*)
+                    FROM quest_user qu2
+                    JOIN badge_quest bq2 ON qu2.quest_id = bq2.quest_id
+                    WHERE qu2.user_id = #{user_id}
+                    AND bq2.badge_id = (SELECT bq.badge_id 
+                                        FROM badge_quest bq 
+                                        WHERE bq.quest_id = q.id 
+                                        LIMIT 1)
+                    AND qu2.status = 'COMPLETED'
+                    ) * 100.0 /
+                    (SELECT COUNT(*)
+                    FROM badge_quest bq3
+                    WHERE bq3.badge_id = (SELECT bq.badge_id 
+                                        FROM badge_quest bq 
+                                        WHERE bq.quest_id = q.id 
+                                        LIMIT 1)
+                    )
+                ), 0
+            )) AS progress,
+            CASE 
+                WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+                ELSE q.status 
+            END AS quest_status
+        FROM quest_user qu
+        JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.user_id = #{user_id}
+        
+        <if test="status != null">
+            AND qu.status = #{status}
+        </if>
+        
+        <choose>
+            <when test="order == 'xp'">
+                ORDER BY q.xp DESC
+            </when>
+            <when test="order == 'started_at'">
+                ORDER BY qu.started_at DESC
+            </when>
+            <when test="order == 'completed_at'">
+                ORDER BY qu.completed_at DESC
+            </when>
+            <otherwise>
+                ORDER BY qu.started_at DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="getQuestCerti" parameterType="int" resultType="com.jigubangbang.quest_service.model.QuestCerti">
+        SELECT
+            qu.id,
+            qu.user_id as user_id,
+            qu.quest_id as quest_id,
+            qu.status,
+            qu.description,
+            qu.started_at as started_at,
+            qu.completed_at as completed_at,
+            qu.given_up_at as given_up_at,
+            
+            q.title,
+            q.difficulty,
+            q.description as quest_description,
+            q.xp
+        FROM quest_user qu
+        JOIN quest q ON qu.quest_id = q.id
+        WHERE qu.id = #{quest_user_id}
+    </select>
+
+    <select id="getQuestCertiImages" parameterType="int" resultType="String">
+        SELECT image
+        FROM quest_image
+        WHERE quest_user_id = #{quest_user_id}
+    </select>
+
+    <update id="updateQuestUserCompleted" parameterType="map">
+        UPDATE quest_user
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, description=#{quest_description}
+        WHERE id = #{quest_user_id}
+    </update>
+
+    <select id="getQuestType" parameterType="int" resultType="String">
+        SELECT q.type 
+        FROM quest q
+        JOIN quest_user qu ON qu.quest_id = q.id
+        WHERE qu.id = #{quest_user_id}
+    </select>
+
+    <insert id="insertQuestImages" parameterType="java.util.List">
+        INSERT INTO quest_image (quest_user_id, image)
+        VALUES
+        <foreach collection="images" item="image" separator=",">
+            (#{image.quest_user_id}, #{image.image})
+        </foreach>
+    </insert>
+
+    <update id="updateQuestUserAbandon" parameterType="Integer">
+        UPDATE quest_user 
+        SET status = 'GIVEN_UP', given_up_at = CURRENT_TIMESTAMP
+        WHERE id = #{quest_user_id}
+    </update>
+
+    <select id="getUserQuests" resultType="com.jigubangbang.quest_service.model.QuestDto" parameterType="map">
+    SELECT 
+        q.id,
+        q.type,
+        q.category,
+        q.title,
+        q.difficulty,
+        q.description,
+        q.xp,
+        q.is_seasonal,
+        q.season_start,
+        q.season_end,
+        CASE 
+            WHEN q.is_seasonal = true AND q.season_end &lt; NOW() THEN 'INACTIVE'
+            ELSE q.status 
+        END AS status,
+        q.created_at,
+        
+        (SELECT b.icon 
+        FROM badge_quest bq 
+        JOIN badge b ON bq.badge_id = b.id 
+        WHERE bq.quest_id = q.id 
+        ORDER BY bq.badge_id DESC 
+        LIMIT 1) AS icon,
+
+        (SELECT COUNT(*) 
+        FROM quest_user qu 
+        WHERE qu.quest_id = q.id AND qu.status = 'IN_PROGRESS'
+        ) AS count_in_progress,
+
+        (SELECT COUNT(*) 
+        FROM quest_user qu 
+        WHERE qu.quest_id = q.id AND qu.status = 'COMPLETED'
+        ) AS count_completed,
+        
+        -- 사용자의 퀘스트 상태 추가
+        COALESCE(qu_user.status, null) AS user_status
+        
+    FROM quest q
+    LEFT JOIN quest_user qu_user ON q.id = qu_user.quest_id AND qu_user.user_id = #{user_id}
+    <where>
+        1=1
+        <if test="category != null and category != 0">
+            AND q.category = #{category}
+        </if>
+        <if test="difficulty != null and difficulty != ''">
+            AND q.difficulty = #{difficulty}
+        </if>
+        <if test="search != null and search != ''">
+            AND (q.title LIKE CONCAT('%', #{search}, '%') 
+            OR q.description LIKE CONCAT('%', #{search}, '%') 
+            OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
+        </if>
+    </where>
+
+    <choose>
+        <when test="sortOption == 'latest'">
+            ORDER BY q.created_at DESC
+        </when>
+        
+        <when test="sortOption == 'oldest'">
+            ORDER BY q.created_at ASC
+        </when>
+        
+        <when test="sortOption == 'xp_high'">
+            ORDER BY q.xp DESC
+        </when>
+        
+        <when test="sortOption == 'xp_low'">
+            ORDER BY q.xp ASC
+        </when>
+
+        <when test="sortOption == 'default'">
+            ORDER BY q.id ASC
+        </when>
+
+        <otherwise>
+            ORDER BY q.id ASC
+        </otherwise>
+    </choose>
+    LIMIT #{limit} OFFSET #{offset}
+</select>
+
+    <select id="countUserQuests" resultType="int" parameterType="map">
+        SELECT COUNT(*)
+        FROM quest q
+        LEFT JOIN quest_user qu_user ON q.id = qu_user.quest_id AND qu_user.user_id = #{user_id}
+        <where>
+            1=1
+            <if test="category != null and category != 0">
+                AND q.category = #{category}
+            </if>
+            <if test="difficulty != null and difficulty != ''">
+                AND q.difficulty = #{difficulty}
+            </if>
+            <if test="search != null and search != ''">
+                AND (q.title LIKE CONCAT('%', #{search}, '%') 
+                OR q.description LIKE CONCAT('%', #{search}, '%') 
+                OR CAST(q.xp AS CHAR) LIKE CONCAT('%', #{search}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <delete id="seasonEndQuest" parameterType="int">
+        DELETE FROM quest_user where id = #{quest_user_id}
+    </delete>
+</mapper>
