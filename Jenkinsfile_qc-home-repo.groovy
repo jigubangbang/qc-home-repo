@@ -30,7 +30,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'deployAWS', credentialsId: 'github-qc-home-repo-pat', url: 'https://github.com/jigubangbang/qc-home-repo.git'
+                git branch: 'deployAWS2', credentialsId: 'github-qc-home-repo-pat', url: 'https://github.com/jigubangbang/qc-home-repo.git'
             }
         }
 
