@@ -149,7 +149,7 @@
         VALUES (#{user_id}, #{badge_id}, #{awarded_at}, #{is_displayed}, #{pinned_at})
     </insert>
 
-    <select id="getAdminBadgeList" resultType="com.jigubangbang.quest_service.model.AdminBadgeDto">
+        <select id="getAdminBadgeList" resultType="com.jigubangbang.quest_service.model.AdminBadgeDto">
         SELECT 
             id as badge_id,
             kor_title, 
@@ -159,6 +159,15 @@
             created_at, 
             difficulty
         FROM badge
+        <where>
+            <if test="search != null and search != ''">
+                AND (
+                    kor_title LIKE CONCAT('%', #{search}, '%')
+                    OR eng_title LIKE CONCAT('%', #{search}, '%')
+                    OR description LIKE CONCAT('%', #{search}, '%')
+                )
+            </if>
+        </where>
         ORDER BY id ASC
     </select>
 

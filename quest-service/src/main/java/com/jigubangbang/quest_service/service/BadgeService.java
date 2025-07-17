@@ -166,23 +166,22 @@ public class BadgeService {
         return false;
     }
 
-    public Map<String, Object> getAdminBadgeList(){        
-        List<AdminBadgeDto> badges = badgeMapper.getAdminBadgeList();
-    
-        for (AdminBadgeDto badge : badges) {
-            List<String> questTitles = badgeMapper.getQuestTitlesByBadgeId(badge.getBadge_id());
-            badge.setQuest(questTitles);
-        }
-        
-        int totalCount = badges.size();
-        
-        Map<String, Object> result = new HashMap<>();
-        result.put("badges", badges);
-        result.put("totalCount", totalCount);
-        
-        return result;
-    }
+    public Map<String, Object> getAdminBadgeList(String search) {        
+    List<AdminBadgeDto> badges = badgeMapper.getAdminBadgeList(search);
 
+    for (AdminBadgeDto badge : badges) {
+        List<String> questTitles = badgeMapper.getQuestTitlesByBadgeId(badge.getBadge_id());
+        badge.setQuest(questTitles);
+    }
+    
+    int totalCount = badges.size();
+    
+    Map<String, Object> result = new HashMap<>();
+    result.put("badges", badges);
+    result.put("totalCount", totalCount);
+    
+    return result;
+}
     @Transactional
     public int createBadge(BadgeCreateRequest request) {
         try {

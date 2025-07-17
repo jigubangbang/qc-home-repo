@@ -45,7 +45,7 @@ public interface BadgeMapper {
     public List<BadgeQuestDto> getBadgeQuests(int badge_id);
     public int getUserCompletedQuestCount(Map<String, Object> params);
 
-    public List<AdminBadgeDto> getAdminBadgeList();
+    List<AdminBadgeDto> getAdminBadgeList(@Param("search") String search);
 
     int insertBadge(BadgeCreateRequest request);
     int insertBadgeQuest(@Param("badgeId") int badgeId, @Param("questId") int questId);
