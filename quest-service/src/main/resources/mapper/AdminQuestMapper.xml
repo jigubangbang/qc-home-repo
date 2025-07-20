@@ -148,7 +148,7 @@
     <select id="selectQuestUsers" parameterType="map" resultType="com.jigubangbang.quest_service.model.AdminQuestUserDto">
         SELECT 
             quest_id,
-            id as quest_user_id,
+            id AS quest_user_id,
             user_id,
             description,
             status,
@@ -157,7 +157,11 @@
             given_up_at
         FROM quest_user 
         WHERE quest_id = #{quest_id}
-        ORDER BY started_at DESC
+        ORDER BY 
+            CASE 
+                WHEN completed_at IS NOT NULL THEN completed_at
+                ELSE started_at
+            END DESC
         LIMIT #{limit} OFFSET #{offset}
     </select>
 
