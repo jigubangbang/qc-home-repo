@@ -312,6 +312,8 @@ File Storage: AWS S3 (이미지 및 파일 업로드)
 
 #### `board_image`
 
+게시판 이미지를 저장하는 테이블입니다.
+
 | Column      | Type           | Description                      |
 | :---------- | :------------- | :------------------------------- |
 | `id`        | `INT (PK, AI)` | 이미지 고유 ID                    |
@@ -533,7 +535,7 @@ File Storage: AWS S3 (이미지 및 파일 업로드)
 2.  **Eureka Server 실행:** 서비스 디스커버리를 위해 Eureka Server를 실행합니다.
 3.  **Chat Service 실행:**
     ```bash
-    # chat-service 디렉토리로 이동하여 아래 명령어 실행
+    # com-service 디렉토리로 이동하여 아래 명령어 실행
     ./mvnw spring-boot:run
     ```
 4.  **API Gateway 실행:** 라우팅을 위해 API Gateway를 실행합니다.
