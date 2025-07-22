@@ -55,16 +55,16 @@ public class MyPageController {
         }
     }
 
-    @GetMapping("/certificate/{quest_user_id}")
-    public ResponseEntity<QuestCerti> getQuestCerti(
-        @PathVariable("quest_user_id") int quest_user_id
-    ){
-        QuestCerti questCerti = questService.getQuestCerti(quest_user_id);
-        if(questCerti == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(questCerti);
-    }
+    // @GetMapping("/certificate/{quest_user_id}")
+    // public ResponseEntity<QuestCerti> getQuestCerti(
+    //     @PathVariable("quest_user_id") int quest_user_id
+    // ){
+    //     QuestCerti questCerti = questService.getQuestCerti(quest_user_id);
+    //     if(questCerti == null){
+    //         return ResponseEntity.notFound().build();
+    //     }
+    //     return ResponseEntity.ok(questCerti);
+    // }
 
     @GetMapping("/user-graph/{user_id}")
     public ResponseEntity<Map<String, Object>> getUserGraph(

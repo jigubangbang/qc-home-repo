@@ -47,24 +47,24 @@ public class QuestController {
         return ResponseEntity.ok(quest);
         }
 
-    @GetMapping("/{quest_id}/participants")
-    public ResponseEntity<Map<String, Object>> getQuestParticipants(
-        @PathVariable("quest_id") int quest_id
-    ){
-        Map<String, Object> result = questService.getQuestParticipants(quest_id);
-        return ResponseEntity.ok(result);
-    }
+    // @GetMapping("/{quest_id}/participants")
+    // public ResponseEntity<Map<String, Object>> getQuestParticipants(
+    //     @PathVariable("quest_id") int quest_id
+    // ){
+    //     Map<String, Object> result = questService.getQuestParticipants(quest_id);
+    //     return ResponseEntity.ok(result);
+    // }
 
     //사용자 xp/레벨 조회
-    @GetMapping("/stats/{user_id}")
-    public ResponseEntity<UserJourneyDto> getUserLevel(
-        @PathVariable("user_id") String user_id
-    ){
-        UserJourneyDto userJourney = userQuestService.getUserJourney(user_id);
-        if (userJourney == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(userJourney);
-    }
+    // @GetMapping("/stats/{user_id}")
+    // public ResponseEntity<UserJourneyDto> getUserLevel(
+    //     @PathVariable("user_id") String user_id
+    // ){
+    //     UserJourneyDto userJourney = userQuestService.getUserJourney(user_id);
+    //     if (userJourney == null){
+    //         return ResponseEntity.notFound().build();
+    //     }
+    //     return ResponseEntity.ok(userJourney);
+    // }
 
 }
