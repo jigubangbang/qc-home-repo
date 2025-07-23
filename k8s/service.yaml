@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: qc-home-repo
+  namespace: bit-2503
   labels:
     app: qc-home-repo
 spec:
